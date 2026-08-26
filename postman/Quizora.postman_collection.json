@@ -44,12 +44,16 @@
       ]
     },
     {
-      "name": "Courses (Phase 2)",
-      "description": "Course CRUD — implemented in Phase 2.",
+      "name": "Courses",
+      "description": "Course CRUD — requires admin session cookie.",
       "item": [
         {
           "name": "List courses",
-          "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/courses" }
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/courses",
+            "description": "Returns all courses with exam count."
+          }
         },
         {
           "name": "Create course",
@@ -59,8 +63,49 @@
             "url": "{{baseUrl}}/api/admin/courses",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Machine Learning\",\n  \"code\": \"IE403\",\n  \"description\": \"Introduction to ML\"\n}"
+              "raw": "{\n  \"name\": \"Machine Learning\",\n  \"code\": \"IE403\",\n  \"description\": \"Introduction to Machine Learning\"\n}"
+            },
+            "description": "Code is auto-uppercased and must be alphanumeric."
+          }
+        },
+        {
+          "name": "Get course",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/courses/{{courseId}}",
+            "description": "Returns course details including its exams."
+          }
+        },
+        {
+          "name": "Update course",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/admin/courses/{{courseId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Machine Learning (Updated)\",\n  \"description\": \"Updated description\"\n}"
             }
+          }
+        },
+        {
+          "name": "Archive course",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/admin/courses/{{courseId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete course",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/admin/courses/{{courseId}}",
+            "description": "Only succeeds if the course has no exams."
           }
         }
       ]
