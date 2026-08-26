@@ -27,8 +27,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Local uploads (dev storage)
-uploads/
+# Local uploads (dev storage) — keep directory structure but not files
+public/uploads/*
+!public/uploads/.gitkeep
 
 # Testing
 coverage/

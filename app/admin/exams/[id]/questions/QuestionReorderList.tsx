@@ -17,6 +17,7 @@ interface QuestionRow {
   numericalAnswer?: number | null;
   numericalTolerance?: number | null;
   textAnswer?: string | null;
+  mediaUrl?: string | null;
 }
 
 interface Props {
@@ -258,6 +259,16 @@ export default function QuestionReorderList({
 function QuestionPreview({ question }: { question: QuestionRow }) {
   return (
     <div className="space-y-3">
+      {/* Image thumbnail for IMAGE_BASED */}
+      {question.mediaUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={question.mediaUrl}
+          alt="Question image"
+          className="rounded-lg border border-border max-h-48 max-w-full object-contain bg-muted"
+        />
+      )}
+
       <p className="text-sm font-medium text-foreground whitespace-pre-wrap">{question.text}</p>
 
       {/* Options preview */}

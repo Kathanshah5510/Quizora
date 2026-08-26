@@ -57,6 +57,7 @@ export default async function QuestionsPage({
         select: { text: true, isCorrect: true, displayOrder: true },
         orderBy: { displayOrder: "asc" },
       },
+      mediaAsset: { select: { storageKey: true } },
     },
   });
 
@@ -162,6 +163,7 @@ export default async function QuestionsPage({
             numericalAnswer: q.numericalAnswer !== null ? Number(q.numericalAnswer) : null,
             numericalTolerance: q.numericalTolerance !== null ? Number(q.numericalTolerance) : null,
             textAnswer: q.textAnswer,
+            mediaUrl: q.mediaAsset ? `/${q.mediaAsset.storageKey}` : null,
           }))}
           typeLabels={TYPE_LABELS}
           typeColors={TYPE_COLORS}

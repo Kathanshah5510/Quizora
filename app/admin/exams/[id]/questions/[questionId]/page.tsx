@@ -38,6 +38,7 @@ export default async function EditQuestionPage({
       include: {
         options: { orderBy: { displayOrder: "asc" } },
         _count: { select: { responses: true } },
+        mediaAsset: { select: { id: true, storageKey: true, filename: true } },
       },
     }),
   ]);
@@ -106,6 +107,13 @@ export default async function EditQuestionPage({
             numericalAnswer: question.numericalAnswer !== null ? Number(question.numericalAnswer) : null,
             numericalTolerance: question.numericalTolerance !== null ? Number(question.numericalTolerance) : null,
             textAnswer: question.textAnswer,
+            mediaAsset: question.mediaAsset
+              ? {
+                  id: question.mediaAsset.id,
+                  url: `/${question.mediaAsset.storageKey}`,
+                  filename: question.mediaAsset.filename,
+                }
+              : null,
           }}
           onSubmit={boundUpdate}
           submitLabel="Save Question"

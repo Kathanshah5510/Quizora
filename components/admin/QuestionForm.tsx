@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import MediaUploader from "./MediaUploader";
 
 type QuestionType = "MCQ" | "MSQ" | "TRUE_FALSE" | "SHORT_TEXT" | "NUMERICAL" | "IMAGE_BASED";
 
@@ -20,7 +21,7 @@ interface QuestionFormDefaults {
   numericalTolerance?: number | null;
   textAnswer?: string | null;
   explanation?: string | null;
-  mediaAssetId?: string | null;
+  mediaAsset?: { id: string; url: string; filename?: string } | null;
 }
 
 interface QuestionFormProps {
@@ -170,6 +171,9 @@ export default function QuestionForm({
   );
 
   const [textAnswer, setTextAnswer] = useState(defaultValues?.textAnswer ?? "");
+  const [mediaAssetId, setMediaAssetId] = useState<string | null>(
+    defaultValues?.mediaAsset?.id ?? null
+  );
   const [serverError, setServerError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -224,6 +228,7 @@ export default function QuestionForm({
       marks: parseFloat(marks) || 0,
       negativeMarks: parseFloat(negativeMarks) || 0,
       explanation: explanation.trim() || null,
+      mediaAssetId: mediaAssetId ?? null,
     };
 
     if (OPTION_TYPES.includes(type)) {
@@ -427,11 +432,14 @@ export default function QuestionForm({
         </FormSection>
       )}
 
-      {/* Image-based note */}
+      {/* Media attachment (IMAGE_BASED) */}
       {type === "IMAGE_BASED" && (
-        <div className="rounded-lg border border-dashed border-border px-4 py-3 text-sm text-muted-foreground">
-          Image/media attachment is available after saving the question. Set the question text and options now.
-        </div>
+        <FormSection title="Question Image">
+          <MediaUploader
+            defaultAsset={defaultValues?.mediaAsset ?? null}
+            onChange={(asset) => setMediaAssetId(asset?.id ?? null)}
+          />
+        </FormSection>
       )}
 
       {/* Marks */}
