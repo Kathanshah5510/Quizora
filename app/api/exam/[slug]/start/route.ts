@@ -105,26 +105,68 @@ export async function POST(
     orderBy: { attemptNumber: "asc" },
   });
 
-  // Reconnect: return existing in-progress attempt with fresh session token
-  const inProgress = existingAttempts.find((a) => a.status === "IN_PROGRESS");
-  if (inProgress) {
+  // Device locking: if an in-progress attempt exists, enforce one-device policy
+  const RECONNECT_GRACE_SECONDS = 30;
+  const inProgressFull = await db.examAttempt.findFirst({
+    where: { examId: exam.id, studentId, status: "IN_PROGRESS" },
+    select: {
+      id: true,
+      expiresAt: true,
+      lastActiveAt: true,
+      deviceFingerprint: true,
+    },
+  });
+
+  if (inProgressFull) {
+    const secondsSinceActive =
+      (now.getTime() - inProgressFull.lastActiveAt.getTime()) / 1000;
+
+    // Another device is actively using this attempt — deny reconnect
+    if (secondsSinceActive < RECONNECT_GRACE_SECONDS) {
+      return NextResponse.json(
+        {
+          error: "Another device is currently active on this attempt. Please wait before reconnecting.",
+          code: "DEVICE_LOCKED",
+          retryAfterSeconds: Math.ceil(RECONNECT_GRACE_SECONDS - secondsSinceActive),
+        },
+        { status: 409 }
+      );
+    }
+
+    // Grace period elapsed — allow reconnect; detect device change
+    const deviceChanged =
+      deviceFingerprint != null &&
+      inProgressFull.deviceFingerprint != null &&
+      deviceFingerprint !== inProgressFull.deviceFingerprint;
+
     const sessionToken = crypto.randomUUID();
     const updated = await db.examAttempt.update({
-      where: { id: inProgress.id },
+      where: { id: inProgressFull.id },
       data: {
         sessionToken,
         sessionTokenIssuedAt: now,
         lastActiveAt: now,
-        deviceFingerprint: deviceFingerprint ?? null,
+        deviceFingerprint: deviceFingerprint ?? inProgressFull.deviceFingerprint,
         ipAddress: ip,
         userAgent,
       },
     });
+
+    // Log reconnect / device-change event
+    await db.examEvent.create({
+      data: {
+        attemptId: inProgressFull.id,
+        eventType: deviceChanged ? "DEVICE_CHANGED" : "RECONNECTED",
+        metadata: { ip, userAgent },
+      },
+    });
+
     return NextResponse.json({
       attemptId: updated.id,
       sessionToken,
       expiresAt: updated.expiresAt.toISOString(),
       isReconnect: true,
+      deviceChanged,
     });
   }
 
@@ -202,6 +244,15 @@ export async function POST(
     }
     throw err;
   }
+
+  // Log STARTED event
+  await db.examEvent.create({
+    data: {
+      attemptId: attempt.id,
+      eventType: "STARTED",
+      metadata: { ip, userAgent },
+    },
+  });
 
   return NextResponse.json(
     {
