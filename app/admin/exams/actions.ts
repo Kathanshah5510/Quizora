@@ -61,6 +61,83 @@ export async function createExamAction(
   redirect(`/admin/exams/${exam.id}`);
 }
 
+// ── Lifecycle actions ─────────────────────────────────────────────────────────
+
+type LifecycleResult = { error?: string; success?: boolean };
+
+export async function publishExamAction(examId: string): Promise<LifecycleResult> {
+  const user = await requireAdmin();
+  if (!user) return { error: "Unauthorized" };
+
+  const exam = await db.exam.findUnique({ where: { id: examId } });
+  if (!exam) return { error: "Exam not found" };
+
+  const { validatePublish } = await import("@/lib/services/exam-lifecycle");
+  const err = validatePublish(exam);
+  if (err) return { error: err };
+
+  await db.exam.update({ where: { id: examId }, data: { status: "PUBLISHED" } });
+  revalidatePath(`/admin/exams/${examId}`);
+  revalidatePath("/admin/exams");
+  return { success: true };
+}
+
+export async function unpublishExamAction(examId: string): Promise<LifecycleResult> {
+  const user = await requireAdmin();
+  if (!user) return { error: "Unauthorized" };
+
+  const exam = await db.exam.findUnique({
+    where: { id: examId },
+    include: { _count: { select: { attempts: true } } },
+  });
+  if (!exam) return { error: "Exam not found" };
+
+  const { validateUnpublish } = await import("@/lib/services/exam-lifecycle");
+  const err = validateUnpublish({ ...exam, attemptCount: exam._count.attempts });
+  if (err) return { error: err };
+
+  await db.exam.update({ where: { id: examId }, data: { status: "DRAFT" } });
+  revalidatePath(`/admin/exams/${examId}`);
+  revalidatePath("/admin/exams");
+  return { success: true };
+}
+
+export async function closeExamAction(examId: string): Promise<LifecycleResult> {
+  const user = await requireAdmin();
+  if (!user) return { error: "Unauthorized" };
+
+  const exam = await db.exam.findUnique({ where: { id: examId } });
+  if (!exam) return { error: "Exam not found" };
+
+  const { validateClose } = await import("@/lib/services/exam-lifecycle");
+  const err = validateClose(exam);
+  if (err) return { error: err };
+
+  await db.exam.update({ where: { id: examId }, data: { status: "CLOSED" } });
+  revalidatePath(`/admin/exams/${examId}`);
+  revalidatePath("/admin/exams");
+  return { success: true };
+}
+
+export async function reopenExamAction(examId: string): Promise<LifecycleResult> {
+  const user = await requireAdmin();
+  if (!user) return { error: "Unauthorized" };
+
+  const exam = await db.exam.findUnique({ where: { id: examId } });
+  if (!exam) return { error: "Exam not found" };
+
+  const { validateReopen } = await import("@/lib/services/exam-lifecycle");
+  const err = validateReopen(exam);
+  if (err) return { error: err };
+
+  await db.exam.update({ where: { id: examId }, data: { status: "PUBLISHED" } });
+  revalidatePath(`/admin/exams/${examId}`);
+  revalidatePath("/admin/exams");
+  return { success: true };
+}
+
+// ── Settings update ───────────────────────────────────────────────────────────
+
 export async function updateExamAction(
   examId: string,
   _prev: ExamActionState,

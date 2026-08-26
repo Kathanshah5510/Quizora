@@ -4,8 +4,8 @@ import { notFound, redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import ExamForm from "@/components/admin/ExamForm";
+import ExamLifecycle from "./ExamLifecycle";
 import { updateExamAction } from "../actions";
-import { formatDateTime } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Exam Settings" };
 
@@ -73,25 +73,14 @@ export default async function ExamDetailPage({
         </div>
       </div>
 
-      {/* Lifecycle bar — populated in Phase 2D */}
-      <div className="rounded-xl border border-border bg-card px-6 py-4 flex flex-wrap items-center gap-4">
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-foreground">Exam Lifecycle</p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Publish/close controls coming in Phase 2D.
-            <span className="ml-2">Current status: <strong>{s.label}</strong></span>
-          </p>
-        </div>
-        <div className="text-xs text-muted-foreground space-y-0.5 text-right">
-          {exam.availabilityStart && (
-            <div>Opens: {formatDateTime(exam.availabilityStart)}</div>
-          )}
-          {exam.availabilityEnd && (
-            <div>Closes: {formatDateTime(exam.availabilityEnd)}</div>
-          )}
-          <div>Duration: {exam.durationMinutes} min</div>
-        </div>
-      </div>
+      {/* Lifecycle */}
+      <ExamLifecycle
+        examId={exam.id}
+        status={exam.status}
+        hasAttempts={exam._count.attempts > 0}
+        availabilityStart={exam.availabilityStart?.toISOString() ?? null}
+        availabilityEnd={exam.availabilityEnd?.toISOString() ?? null}
+      />
 
       {isLocked && (
         <div className="rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-900/20 dark:border-amber-800 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">

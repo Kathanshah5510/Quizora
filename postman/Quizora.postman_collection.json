@@ -158,6 +158,30 @@
             "url": "{{baseUrl}}/api/admin/exams/{{examId}}",
             "description": "Only allowed if exam has no student attempts."
           }
+        },
+        {
+          "name": "Publish exam",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/admin/exams/{{examId}}/publish",
+            "description": "DRAFT → PUBLISHED. Validates title, instructor, duration."
+          }
+        },
+        {
+          "name": "Close exam",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/admin/exams/{{examId}}/close",
+            "description": "PUBLISHED/ACTIVE → CLOSED. Prevents new attempts."
+          }
+        },
+        {
+          "name": "Unpublish exam",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/admin/exams/{{examId}}/unpublish",
+            "description": "PUBLISHED → DRAFT. Only allowed if no attempts exist."
+          }
         }
       ]
     },
