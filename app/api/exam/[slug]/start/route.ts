@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { checkExamAccess } from "@/lib/exam/examAccess";
 import { isValidStudentId, isValidStudentEmail } from "@/lib/exam/studentIdentity";
 import { buildRandomizedOrders } from "@/lib/exam/randomize";
+import { checkRateLimit } from "@/lib/exam/rateLimit";
 
 const BodySchema = z.object({
   studentId: z.string().trim(),
@@ -19,6 +20,15 @@ export async function POST(
   const { slug } = await params;
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
   const userAgent = req.headers.get("user-agent") ?? null;
+
+  // Rate limit: 5 start attempts per IP per minute
+  const rl = checkRateLimit(`start:${ip ?? "unknown"}:${slug}`, 5, 60);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too many attempts. Please wait.", retryAfterSeconds: rl.retryAfterSeconds },
+      { status: 429 }
+    );
+  }
 
   let body: z.infer<typeof BodySchema>;
   try {

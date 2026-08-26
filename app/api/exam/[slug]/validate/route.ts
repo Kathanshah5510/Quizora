@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { checkExamAccess } from "@/lib/exam/examAccess";
 import { isValidStudentId, isValidStudentEmail } from "@/lib/exam/studentIdentity";
+import { checkRateLimit } from "@/lib/exam/rateLimit";
 
 const BodySchema = z.object({
   studentId: z.string().trim(),
@@ -15,6 +16,16 @@ export async function POST(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await params;
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+
+  // Rate limit: 10 validate attempts per IP per minute
+  const rl = checkRateLimit(`validate:${ip}:${slug}`, 10, 60);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too many attempts. Please wait.", retryAfterSeconds: rl.retryAfterSeconds },
+      { status: 429 }
+    );
+  }
 
   // Parse + validate request body
   let body: z.infer<typeof BodySchema>;
