@@ -145,6 +145,52 @@ export async function deleteQuestionAction(
   redirect(`/admin/exams/${examId}/questions`);
 }
 
+export async function duplicateQuestionAction(
+  examId: string,
+  questionId: string
+): Promise<QuestionActionResult> {
+  const user = await requireAdmin();
+  if (!user) return { error: "Unauthorized", success: false };
+
+  const source = await db.question.findFirst({
+    where: { id: questionId, examId },
+    include: { options: { orderBy: { displayOrder: "asc" } } },
+  });
+  if (!source) return { error: "Question not found", success: false };
+
+  const maxOrder = await db.question.aggregate({
+    where: { examId },
+    _max: { displayOrder: true },
+  });
+  const displayOrder = (maxOrder._max.displayOrder ?? 0) + 1;
+
+  const copy = await db.question.create({
+    data: {
+      examId,
+      type: source.type,
+      text: source.text + " (Copy)",
+      marks: source.marks,
+      negativeMarks: source.negativeMarks,
+      mediaAssetId: source.mediaAssetId,
+      numericalAnswer: source.numericalAnswer,
+      numericalTolerance: source.numericalTolerance,
+      textAnswer: source.textAnswer,
+      displayOrder,
+      options: {
+        create: source.options.map((o) => ({
+          text: o.text,
+          isCorrect: o.isCorrect,
+          displayOrder: o.displayOrder,
+          mediaAssetId: o.mediaAssetId,
+        })),
+      },
+    },
+  });
+
+  revalidatePath(`/admin/exams/${examId}/questions`);
+  return { error: null, success: true, questionId: copy.id };
+}
+
 export async function reorderQuestionsAction(
   examId: string,
   data: unknown

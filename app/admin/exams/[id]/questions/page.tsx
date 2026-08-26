@@ -43,7 +43,12 @@ export default async function QuestionsPage({
   const questions = await db.question.findMany({
     where: { examId },
     orderBy: { displayOrder: "asc" },
-    include: { options: { select: { isCorrect: true }, orderBy: { displayOrder: "asc" } } },
+    include: {
+      options: {
+        select: { text: true, isCorrect: true, displayOrder: true },
+        orderBy: { displayOrder: "asc" },
+      },
+    },
   });
 
   const totalMarks = questions.reduce((sum, q) => sum + Number(q.marks), 0);
@@ -104,6 +109,10 @@ export default async function QuestionsPage({
             displayOrder: q.displayOrder,
             optionCount: q.options.length,
             correctCount: q.options.filter((o) => o.isCorrect).length,
+            options: q.options.map((o) => ({ text: o.text, isCorrect: o.isCorrect })),
+            numericalAnswer: q.numericalAnswer !== null ? Number(q.numericalAnswer) : null,
+            numericalTolerance: q.numericalTolerance !== null ? Number(q.numericalTolerance) : null,
+            textAnswer: q.textAnswer,
           }))}
           typeLabels={TYPE_LABELS}
           typeColors={TYPE_COLORS}
