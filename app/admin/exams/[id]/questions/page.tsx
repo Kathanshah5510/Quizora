@@ -16,6 +16,15 @@ const TYPE_LABELS: Record<string, string> = {
   IMAGE_BASED: "Image",
 };
 
+const TYPE_FULL_LABELS: Record<string, string> = {
+  MCQ: "Single Correct",
+  MSQ: "Multi Correct",
+  TRUE_FALSE: "True / False",
+  SHORT_TEXT: "Short Text",
+  NUMERICAL: "Numerical",
+  IMAGE_BASED: "Image-Based",
+};
+
 const TYPE_COLORS: Record<string, string> = {
   MCQ: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
   MSQ: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
@@ -54,6 +63,14 @@ export default async function QuestionsPage({
   const totalMarks = questions.reduce((sum, q) => sum + Number(q.marks), 0);
   const canEdit = exam.status !== "CLOSED";
 
+  // Type breakdown for summary card
+  const typeCounts: Record<string, { count: number; marks: number }> = {};
+  for (const q of questions) {
+    if (!typeCounts[q.type]) typeCounts[q.type] = { count: 0, marks: 0 };
+    typeCounts[q.type].count += 1;
+    typeCounts[q.type].marks += Number(q.marks);
+  }
+
   return (
     <div className="max-w-3xl space-y-6">
       {/* Header */}
@@ -84,6 +101,30 @@ export default async function QuestionsPage({
           )}
         </div>
       </div>
+
+      {/* Summary card — only when questions exist */}
+      {questions.length > 0 && (
+        <div className="rounded-xl border border-border bg-card px-5 py-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-semibold text-card-foreground">Question Summary</p>
+            <span className="text-xs text-muted-foreground">
+              Order stored canonically — randomization is independent
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(typeCounts).map(([type, { count, marks }]) => (
+              <div
+                key={type}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs ${TYPE_COLORS[type] ?? "bg-muted text-muted-foreground"}`}
+              >
+                <span className="font-semibold">{count}</span>
+                <span>{TYPE_FULL_LABELS[type] ?? type}</span>
+                <span className="opacity-60">· {marks}pts</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {questions.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">

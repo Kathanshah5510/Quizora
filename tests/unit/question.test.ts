@@ -334,3 +334,62 @@ describe("UpdateQuestionSchema", () => {
     expect(result.success).toBe(false);
   });
 });
+
+// ─── Ordering invariants ──────────────────────────────────────────────────────
+
+describe("Question ordering invariants", () => {
+  it("ReorderQuestionsSchema validates unique IDs with ascending order", () => {
+    const result = ReorderQuestionsSchema.safeParse({
+      questions: [
+        { id: "q1", displayOrder: 1 },
+        { id: "q2", displayOrder: 2 },
+        { id: "q3", displayOrder: 3 },
+      ],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("ReorderQuestionsSchema allows non-contiguous displayOrder values", () => {
+    // The schema doesn't enforce contiguity — gaps are fine
+    const result = ReorderQuestionsSchema.safeParse({
+      questions: [
+        { id: "q1", displayOrder: 10 },
+        { id: "q2", displayOrder: 20 },
+      ],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("ReorderQuestionsSchema requires displayOrder >= 0", () => {
+    const result = ReorderQuestionsSchema.safeParse({
+      questions: [{ id: "q1", displayOrder: -1 }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("CreateQuestionSchema defaults negativeMarks to 0", () => {
+    const result = CreateQuestionSchema.safeParse({
+      type: "MCQ",
+      text: "Question?",
+      marks: 1,
+      options: mcqOptions,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.negativeMarks).toBe(0);
+    }
+  });
+
+  it("CreateQuestionSchema defaults options to empty array for non-option types", () => {
+    const result = CreateQuestionSchema.safeParse({
+      type: "NUMERICAL",
+      text: "What is 2+2?",
+      marks: 1,
+      numericalAnswer: 4,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.options).toEqual([]);
+    }
+  });
+});
