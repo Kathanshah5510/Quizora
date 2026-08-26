@@ -20,7 +20,7 @@
             "url": "{{baseUrl}}/api/admin/auth/login",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"admin@quizora.local\",\n  \"password\": \"Admin@123456\"\n}"
+              "raw": "{\n  \"email\": \"{{admin_email}}\",\n  \"password\": \"{{admin_password}}\"\n}"
             },
             "description": "Returns session cookie on success. Use the cookie in subsequent requests."
           }
