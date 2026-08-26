@@ -229,6 +229,122 @@
       ]
     },
     {
+      "name": "Questions",
+      "description": "Question CRUD per exam — requires admin session cookie. Correct answers are included in admin responses only.",
+      "item": [
+        {
+          "name": "List questions",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/exams/{{examId}}/questions",
+            "description": "Returns all questions for the exam ordered by displayOrder, with options and media."
+          }
+        },
+        {
+          "name": "Create MCQ question",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/admin/exams/{{examId}}/questions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"MCQ\",\n  \"text\": \"Which of the following is a supervised learning algorithm?\",\n  \"marks\": 2,\n  \"negativeMarks\": 0.5,\n  \"options\": [\n    { \"text\": \"K-Means\", \"isCorrect\": false, \"displayOrder\": 0 },\n    { \"text\": \"Decision Tree\", \"isCorrect\": true, \"displayOrder\": 1 },\n    { \"text\": \"DBSCAN\", \"isCorrect\": false, \"displayOrder\": 2 },\n    { \"text\": \"PCA\", \"isCorrect\": false, \"displayOrder\": 3 }\n  ]\n}"
+            },
+            "description": "Creates an MCQ. Exactly one option must have isCorrect: true."
+          }
+        },
+        {
+          "name": "Create MSQ question",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/admin/exams/{{examId}}/questions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"MSQ\",\n  \"text\": \"Which algorithms are classification algorithms?\",\n  \"marks\": 3,\n  \"negativeMarks\": 0,\n  \"options\": [\n    { \"text\": \"SVM\", \"isCorrect\": true, \"displayOrder\": 0 },\n    { \"text\": \"KNN\", \"isCorrect\": true, \"displayOrder\": 1 },\n    { \"text\": \"K-Means\", \"isCorrect\": false, \"displayOrder\": 2 },\n    { \"text\": \"Logistic Regression\", \"isCorrect\": true, \"displayOrder\": 3 }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Create True/False question",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/admin/exams/{{examId}}/questions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"TRUE_FALSE\",\n  \"text\": \"Linear regression can be used for classification tasks.\",\n  \"marks\": 1,\n  \"negativeMarks\": 0.25,\n  \"options\": [\n    { \"text\": \"True\", \"isCorrect\": false, \"displayOrder\": 0 },\n    { \"text\": \"False\", \"isCorrect\": true, \"displayOrder\": 1 }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Numerical question",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/admin/exams/{{examId}}/questions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"NUMERICAL\",\n  \"text\": \"If a linear regression model has R² = 0.85, what percentage of variance is explained?\",\n  \"marks\": 2,\n  \"negativeMarks\": 0,\n  \"numericalAnswer\": 85,\n  \"numericalTolerance\": 0\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Short Text question",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/admin/exams/{{examId}}/questions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"SHORT_TEXT\",\n  \"text\": \"What does SVM stand for?\",\n  \"marks\": 1,\n  \"negativeMarks\": 0,\n  \"textAnswer\": \"Support Vector Machine\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get question",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/exams/{{examId}}/questions/{{questionId}}"
+          }
+        },
+        {
+          "name": "Update question",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/admin/exams/{{examId}}/questions/{{questionId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"marks\": 3,\n  \"negativeMarks\": 1\n}"
+            },
+            "description": "Partial update. Blocked if question has student responses."
+          }
+        },
+        {
+          "name": "Delete question",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/admin/exams/{{examId}}/questions/{{questionId}}",
+            "description": "Blocked if question has student responses."
+          }
+        },
+        {
+          "name": "Reorder questions",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/admin/exams/{{examId}}/questions/reorder",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questions\": [\n    { \"id\": \"{{questionId}}\", \"displayOrder\": 1 }\n  ]\n}"
+            },
+            "description": "Updates displayOrder for all specified questions. All IDs must belong to this exam."
+          }
+        }
+      ]
+    },
+    {
       "name": "Student Exam (Phase 4)",
       "description": "Student-facing endpoints — implemented in Phase 4.",
       "item": [

@@ -137,6 +137,23 @@ export default async function ExamDetailPage({
         </p>
       </div>
 
+      {/* Questions */}
+      <div className="rounded-xl border border-border bg-card px-6 py-4 flex items-center justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium text-foreground">Questions</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {exam._count.questions} question{exam._count.questions !== 1 ? "s" : ""}
+            {exam._count.questions === 0 && " — add questions before publishing"}
+          </p>
+        </div>
+        <Link
+          href={`/admin/exams/${exam.id}/questions`}
+          className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors whitespace-nowrap"
+        >
+          Manage Questions →
+        </Link>
+      </div>
+
       {/* Roster */}
       <div className="rounded-xl border border-border bg-card px-6 py-4 flex items-center justify-between gap-4">
         <div>
