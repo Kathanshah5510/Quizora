@@ -122,25 +122,21 @@ export default async function ExamDetailPage({
         submitLabel="Save Settings"
       />
 
-      {/* Roster section — populated in Phase 2E */}
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <div>
-            <h2 className="text-base font-semibold text-card-foreground">Student Roster</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {exam._count.roster} student{exam._count.roster !== 1 ? "s" : ""} enrolled
-            </p>
-          </div>
-          <Link
-            href={`/admin/exams/${exam.id}/roster`}
-            className="text-sm text-primary hover:underline"
-          >
-            Manage Roster →
-          </Link>
+      {/* Roster */}
+      <div className="rounded-xl border border-border bg-card px-6 py-4 flex items-center justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium text-foreground">Student Roster</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {exam._count.roster} student{exam._count.roster !== 1 ? "s" : ""} enrolled
+            {exam._count.roster === 0 && " — add students via the roster page"}
+          </p>
         </div>
-        <div className="px-6 py-6 text-sm text-muted-foreground">
-          Roster management implemented in Phase 2E.
-        </div>
+        <Link
+          href={`/admin/exams/${exam.id}/roster`}
+          className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors whitespace-nowrap"
+        >
+          Manage Roster →
+        </Link>
       </div>
     </div>
   );

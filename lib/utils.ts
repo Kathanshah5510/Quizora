@@ -1,5 +1,30 @@
 import { v4 as uuidv4 } from "uuid";
 
+export function parseRosterCSV(text: string): Array<{
+  studentId: string;
+  name: string;
+  email: string;
+}> {
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (lines.length === 0) return [];
+
+  // Detect header by checking if first cell looks like a label, not a 9-digit ID
+  const firstCell = lines[0].split(",")[0].trim().replace(/^["']|["']$/g, "");
+  const isHeader = !/^\d{9}$/.test(firstCell);
+  const dataLines = isHeader ? lines.slice(1) : lines;
+
+  return dataLines
+    .map((line) => {
+      const cols = line.split(",").map((c) => c.trim().replace(/^["']|["']$/g, ""));
+      return {
+        studentId: cols[0] ?? "",
+        name: cols[1] ?? "",
+        email: cols[2] ?? "",
+      };
+    })
+    .filter((r) => r.studentId !== "");
+}
+
 export function generateExamSlug(title: string): string {
   const base = title
     .toLowerCase()

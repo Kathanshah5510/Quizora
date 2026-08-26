@@ -186,6 +186,49 @@
       ]
     },
     {
+      "name": "Exam Roster",
+      "description": "Student roster management — requires admin session cookie.",
+      "item": [
+        {
+          "name": "List roster",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/exams/{{examId}}/roster" }
+        },
+        {
+          "name": "Add student",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/admin/exams/{{examId}}/roster",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": \"202301001\",\n  \"name\": \"Rahul Sharma\",\n  \"email\": \"202301001@dau.ac.in\"\n}"
+            },
+            "description": "Upserts — updates name/email if student already enrolled."
+          }
+        },
+        {
+          "name": "Remove student",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/admin/exams/{{examId}}/roster/202301001",
+            "description": "Remove a student from the exam roster by their student ID."
+          }
+        },
+        {
+          "name": "Upload roster CSV",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/admin/exams/{{examId}}/roster/csv",
+            "body": {
+              "mode": "formdata",
+              "formdata": [{ "key": "csv", "type": "file", "src": "/path/to/roster.csv" }]
+            },
+            "description": "CSV format: student_id,name,email — one row per student, header optional. Max 2 MB."
+          }
+        }
+      ]
+    },
+    {
       "name": "Student Exam (Phase 4)",
       "description": "Student-facing endpoints — implemented in Phase 4.",
       "item": [
