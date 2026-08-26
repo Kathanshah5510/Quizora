@@ -53,6 +53,7 @@ function toDatetimeLocal(val: string | null | undefined): string {
 export default function ExamForm({ action, courses, defaultValues, isEdit = false, submitLabel = "Save" }: Props) {
   const [state, formAction, pending] = useActionState(action, initialState);
   const [timerMode, setTimerMode] = useState(defaultValues?.timerMode ?? "WHOLE_QUIZ");
+  const [resultRelease, setResultRelease] = useState(defaultValues?.resultRelease ?? "AUTO");
 
   return (
     <form action={formAction} className="space-y-8">
@@ -412,8 +413,8 @@ export default function ExamForm({ action, courses, defaultValues, isEdit = fals
               id="release-auto"
               name="resultRelease"
               value="AUTO"
-              checked={(defaultValues?.resultRelease ?? "AUTO") === "AUTO"}
-              onChange={() => {}}
+              checked={resultRelease === "AUTO"}
+              onChange={() => setResultRelease("AUTO")}
               label="Automatic"
               description="Results released immediately after availability window ends"
               disabled={pending}
@@ -422,8 +423,8 @@ export default function ExamForm({ action, courses, defaultValues, isEdit = fals
               id="release-manual"
               name="resultRelease"
               value="MANUAL"
-              checked={defaultValues?.resultRelease === "MANUAL"}
-              onChange={() => {}}
+              checked={resultRelease === "MANUAL"}
+              onChange={() => setResultRelease("MANUAL")}
               label="Manual"
               description="Admin releases results explicitly"
               disabled={pending}

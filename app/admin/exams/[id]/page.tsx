@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import ExamForm from "@/components/admin/ExamForm";
 import ExamLifecycle from "./ExamLifecycle";
+import CopySlugButton from "./CopySlugButton";
 import { updateExamAction } from "../actions";
 
 export const metadata: Metadata = { title: "Exam Settings" };
@@ -121,6 +122,20 @@ export default async function ExamDetailPage({
         isEdit
         submitLabel="Save Settings"
       />
+
+      {/* Public exam URL */}
+      <div className="rounded-xl border border-border bg-card px-6 py-4">
+        <p className="text-sm font-medium text-foreground mb-2">Public Exam URL</p>
+        <div className="flex items-center gap-2">
+          <code className="flex-1 rounded-md bg-muted px-3 py-2 text-xs font-mono text-foreground overflow-x-auto whitespace-nowrap">
+            /exam/{exam.slug}
+          </code>
+          <CopySlugButton slug={exam.slug} />
+        </div>
+        <p className="text-xs text-muted-foreground mt-2">
+          Share this URL with students. The exam must be <strong>Published</strong> before students can access it.
+        </p>
+      </div>
 
       {/* Roster */}
       <div className="rounded-xl border border-border bg-card px-6 py-4 flex items-center justify-between gap-4">
