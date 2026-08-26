@@ -1,0 +1,407 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+}
+
+enum ExamStatus {
+  DRAFT
+  PUBLISHED
+  ACTIVE
+  CLOSED
+}
+
+enum TimerMode {
+  WHOLE_QUIZ
+  PER_QUESTION
+}
+
+enum ResultRelease {
+  AUTO
+  MANUAL
+}
+
+enum TextGradingMode {
+  EXACT
+  MANUAL
+  AI_ASSISTED
+}
+
+enum MsqGradingPolicy {
+  STRICT
+  PARTIAL
+}
+
+enum QuestionType {
+  MCQ
+  MSQ
+  TRUE_FALSE
+  SHORT_TEXT
+  NUMERICAL
+  IMAGE_BASED
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  EXPIRED
+  ABANDONED
+}
+
+enum GradingStatus {
+  PENDING
+  PARTIAL
+  COMPLETE
+}
+
+enum AIGradingStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum StorageProvider {
+  LOCAL
+  S3
+  R2
+}
+
+enum ExamEventType {
+  STARTED
+  RECONNECTED
+  DEVICE_CHANGED
+  TAB_SWITCHED
+  VISIBILITY_CHANGED
+  FULLSCREEN_EXITED
+  REFRESHED
+  HEARTBEAT_MISSED
+  AUTO_SUBMITTED
+  MANUALLY_SUBMITTED
+  TIMER_EXPIRED
+  WARNING_ISSUED
+}
+
+// ─── Users / Admins ───────────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         Role     @default(ADMIN)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  courses  Course[]
+  exams    Exam[]
+  auditLog AuditLog[]
+
+  @@map("users")
+}
+
+// ─── Courses ──────────────────────────────────────────────────────────────────
+
+model Course {
+  id          String   @id @default(cuid())
+  name        String
+  code        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  exams Exam[]
+
+  @@map("courses")
+}
+
+// ─── Exams ────────────────────────────────────────────────────────────────────
+
+model Exam {
+  id             String     @id @default(cuid())
+  courseId       String
+  course         Course     @relation(fields: [courseId], references: [id])
+  title          String
+  description    String?
+  instructorName String
+  taNames        String[]   @default([])
+  slug           String     @unique
+  status         ExamStatus @default(DRAFT)
+
+  // Availability & timing
+  availabilityStart  DateTime?
+  availabilityEnd    DateTime?
+  durationMinutes    Int
+  timerMode          TimerMode @default(WHOLE_QUIZ)
+  perQuestionSeconds Int?
+
+  // Attempt policy — enforced application-side, not by DB unique constraint
+  attemptsAllowed Int @default(1)
+
+  // Behaviour flags
+  randomizeQuestions        Boolean @default(false)
+  randomizeOptions          Boolean @default(false)
+  allowBacktracking         Boolean @default(true)
+  allowExternalStudents     Boolean @default(false)
+  continueAfterAvailability Boolean @default(false)
+  fullScreenRequired        Boolean @default(false)
+
+  // Scoring defaults
+  defaultMarks         Decimal @default(1)  @db.Decimal(8, 2)
+  defaultNegativeMarks Decimal @default(0)  @db.Decimal(8, 2)
+
+  // Grading config
+  msqGradingPolicy   MsqGradingPolicy @default(STRICT)
+  numericalTolerance Decimal?         @db.Decimal(10, 6)
+  textGradingMode    TextGradingMode  @default(EXACT)
+
+  // Result release
+  resultRelease ResultRelease @default(AUTO)
+
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  questions Question[]
+  roster    StudentRoster[]
+  attempts  ExamAttempt[]
+
+  @@map("exams")
+}
+
+// ─── Questions ────────────────────────────────────────────────────────────────
+
+model Question {
+  id           String       @id @default(cuid())
+  examId       String
+  exam         Exam         @relation(fields: [examId], references: [id], onDelete: Cascade)
+  type         QuestionType
+  text         String
+  mediaAssetId String?
+  mediaAsset   MediaAsset?  @relation("QuestionAsset", fields: [mediaAssetId], references: [id])
+
+  marks         Decimal @db.Decimal(8, 2)
+  negativeMarks Decimal @default(0) @db.Decimal(8, 2)
+
+  // Type-specific answer data
+  numericalAnswer    Decimal? @db.Decimal(20, 10)
+  numericalTolerance Decimal? @db.Decimal(10, 6)
+  textAnswer         String?  // For SHORT_TEXT EXACT mode
+
+  displayOrder Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  options   QuestionOption[]
+  responses StudentResponse[]
+
+  @@map("questions")
+}
+
+model QuestionOption {
+  id           String     @id @default(cuid())
+  questionId   String
+  question     Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  text         String
+  mediaAssetId String?
+  mediaAsset   MediaAsset? @relation("OptionAsset", fields: [mediaAssetId], references: [id])
+  isCorrect    Boolean
+  displayOrder Int
+
+  @@map("question_options")
+}
+
+// ─── Student Roster ───────────────────────────────────────────────────────────
+
+model StudentRoster {
+  id        String   @id @default(cuid())
+  examId    String
+  exam      Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  studentId String   // 9-digit string
+  name      String
+  email     String
+  createdAt DateTime @default(now())
+
+  @@unique([examId, studentId])
+  @@map("student_roster")
+}
+
+// ─── Exam Attempts ────────────────────────────────────────────────────────────
+
+model ExamAttempt {
+  id            String  @id @default(cuid())
+  examId        String
+  exam          Exam    @relation(fields: [examId], references: [id])
+  studentId     String
+  studentName   String
+  studentEmail  String
+  attemptNumber Int     // 1-based; enforces configured limit application-side
+
+  status      AttemptStatus @default(IN_PROGRESS)
+  startedAt   DateTime      @default(now())
+  submittedAt DateTime?
+  expiresAt   DateTime
+
+  // Device / session locking — only one valid token at a time
+  sessionToken         String?
+  sessionTokenIssuedAt DateTime?
+  lastActiveAt         DateTime  @default(now())
+  deviceFingerprint    String?   // Advisory; mismatch triggers DEVICE_CHANGED event, not hard block
+
+  // Submission ID shown to student after submission
+  submissionId String? @unique
+
+  // Anti-cheating counters
+  tabViolations Int @default(0)
+
+  // Randomization stored server-side, immutable after attempt creation
+  randomizedQuestionOrder Json // String[] of question IDs in display order
+  randomizedOptionOrders  Json // {questionId: String[]} of option IDs in display order
+
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  responses StudentResponse[]
+  events    ExamEvent[]
+  result    Result?
+
+  // attemptNumber is unique per student per exam; attemptsAllowed enforced in application layer
+  @@unique([examId, studentId, attemptNumber])
+  @@index([examId, studentId, status])
+  @@map("exam_attempts")
+}
+
+// ─── Student Responses ────────────────────────────────────────────────────────
+
+model StudentResponse {
+  id         String      @id @default(cuid())
+  attemptId  String
+  attempt    ExamAttempt @relation(fields: [attemptId], references: [id])
+  questionId String
+  question   Question    @relation(fields: [questionId], references: [id])
+
+  // Answer data — only the field relevant to the question type is populated
+  selectedOptionIds Json?    // String[] of QuestionOption IDs
+  textAnswer        String?
+  numericalAnswer   Decimal? @db.Decimal(20, 10)
+
+  savedAt   DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  aiGrading AIGrading?
+
+  @@unique([attemptId, questionId]) // idempotent upsert target
+  @@map("student_responses")
+}
+
+// ─── Exam Events ──────────────────────────────────────────────────────────────
+
+model ExamEvent {
+  id         String        @id @default(cuid())
+  attemptId  String
+  attempt    ExamAttempt   @relation(fields: [attemptId], references: [id])
+  eventType  ExamEventType
+  metadata   Json?
+  recordedAt DateTime      @default(now())
+
+  @@index([attemptId, recordedAt])
+  @@map("exam_events")
+}
+
+// ─── Results ──────────────────────────────────────────────────────────────────
+
+model Result {
+  id        String      @id @default(cuid())
+  attemptId String      @unique
+  attempt   ExamAttempt @relation(fields: [attemptId], references: [id])
+
+  totalScore Decimal @db.Decimal(8, 2)
+  maxScore   Decimal @db.Decimal(8, 2)
+
+  gradingStatus GradingStatus @default(PENDING)
+  isReleased    Boolean       @default(false)
+  releasedAt    DateTime?
+
+  // {questionId: {earned, max, isCorrect, status: "graded"|"pending"|"skipped"}}
+  perQuestionMarks Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("results")
+}
+
+// ─── AI Grading ───────────────────────────────────────────────────────────────
+
+model AIGrading {
+  id         String          @id @default(cuid())
+  responseId String          @unique
+  response   StudentResponse @relation(fields: [responseId], references: [id])
+
+  aiScore     Decimal? @db.Decimal(8, 2)
+  aiRationale String?
+  aiModel     String
+  aiMetadata  Json?
+
+  reviewedById       String?
+  adminApprovedScore Decimal? @db.Decimal(8, 2)
+  approvedAt         DateTime?
+  status             AIGradingStatus @default(PENDING_REVIEW)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("ai_grading")
+}
+
+// ─── Media Assets ─────────────────────────────────────────────────────────────
+
+model MediaAsset {
+  id              String          @id @default(cuid())
+  filename        String
+  mimeType        String
+  sizeBytes       Int
+  storageKey      String
+  storageProvider StorageProvider @default(LOCAL)
+  uploadedById    String?
+  createdAt       DateTime        @default(now())
+
+  questionMedia Question[]       @relation("QuestionAsset")
+  optionMedia   QuestionOption[] @relation("OptionAsset")
+
+  @@map("media_assets")
+}
+
+// ─── Audit Log ────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id])
+  action       String
+  resourceType String
+  resourceId   String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([resourceType, resourceId])
+  @@map("audit_logs")
+}

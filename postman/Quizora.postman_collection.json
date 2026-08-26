@@ -1,0 +1,159 @@
+{
+  "info": {
+    "name": "Quizora API",
+    "description": "Quizora — online quiz platform API collection. Set {{baseUrl}} to http://localhost:3000 for local dev.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "quizora-v1"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Admin Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/admin/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@quizora.local\",\n  \"password\": \"Admin@123456\"\n}"
+            },
+            "description": "Returns session cookie on success. Use the cookie in subsequent requests."
+          }
+        },
+        {
+          "name": "Me (get current session)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/auth/me",
+            "description": "Returns the currently authenticated admin user."
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/admin/auth/logout",
+            "description": "Destroys the admin session cookie."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Courses (Phase 2)",
+      "description": "Course CRUD — implemented in Phase 2.",
+      "item": [
+        {
+          "name": "List courses",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/courses" }
+        },
+        {
+          "name": "Create course",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/admin/courses",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Machine Learning\",\n  \"code\": \"IE403\",\n  \"description\": \"Introduction to ML\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Exams (Phase 2)",
+      "description": "Exam CRUD and settings — implemented in Phase 2.",
+      "item": [
+        {
+          "name": "List exams",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/exams" }
+        },
+        {
+          "name": "Create exam",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/admin/exams",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"courseId\": \"<course_id>\",\n  \"title\": \"Quiz 1\",\n  \"durationMinutes\": 60\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Student Exam (Phase 4)",
+      "description": "Student-facing endpoints — implemented in Phase 4.",
+      "item": [
+        {
+          "name": "Validate identity",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/exam/:slug/validate",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Rahul Sharma\",\n  \"studentId\": \"202301001\",\n  \"email\": \"202301001@dau.ac.in\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Start / resume attempt",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/exam/:slug/start"
+          }
+        },
+        {
+          "name": "Save answer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/exam/:slug/answer",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"attemptId\": \"<attempt_id>\",\n  \"sessionToken\": \"<session_token>\",\n  \"questionId\": \"<question_id>\",\n  \"selectedOptionIds\": [\"<option_id>\"]\n}"
+            }
+          }
+        },
+        {
+          "name": "Submit exam",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/exam/:slug/submit",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"attemptId\": \"<attempt_id>\",\n  \"sessionToken\": \"<session_token>\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Log exam event",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/exam/:slug/event",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"attemptId\": \"<attempt_id>\",\n  \"sessionToken\": \"<session_token>\",\n  \"eventType\": \"TAB_SWITCHED\",\n  \"metadata\": {}\n}"
+            }
+          }
+        },
+        {
+          "name": "Get result",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/exam/:slug/result?attemptId=<attempt_id>"
+          }
+        }
+      ]
+    }
+  ]
+}
