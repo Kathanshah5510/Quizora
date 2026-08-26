@@ -111,12 +111,12 @@
       ]
     },
     {
-      "name": "Exams (Phase 2)",
-      "description": "Exam CRUD and settings — implemented in Phase 2.",
+      "name": "Exams",
+      "description": "Exam CRUD and settings — requires admin session cookie.",
       "item": [
         {
           "name": "List exams",
-          "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/exams" }
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/exams", "description": "Returns all exams with course info and counts." }
         },
         {
           "name": "Create exam",
@@ -126,8 +126,37 @@
             "url": "{{baseUrl}}/api/admin/exams",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"courseId\": \"<course_id>\",\n  \"title\": \"Quiz 1\",\n  \"durationMinutes\": 60\n}"
+              "raw": "{\n  \"courseId\": \"{{courseId}}\",\n  \"title\": \"IE403 — Quiz 1: Supervised Learning\",\n  \"description\": \"20 MCQs on regression and classification\",\n  \"instructorName\": \"Prof. Arunava Chakravarty\",\n  \"taNames\": [\"TA One\", \"TA Two\"],\n  \"availabilityStart\": \"2024-09-01T09:00:00Z\",\n  \"availabilityEnd\": \"2024-09-01T11:00:00Z\",\n  \"durationMinutes\": 90,\n  \"timerMode\": \"WHOLE_QUIZ\",\n  \"attemptsAllowed\": 1,\n  \"randomizeQuestions\": true,\n  \"randomizeOptions\": true,\n  \"allowBacktracking\": true,\n  \"allowExternalStudents\": false,\n  \"continueAfterAvailability\": false,\n  \"fullScreenRequired\": false,\n  \"defaultMarks\": 1,\n  \"defaultNegativeMarks\": 0,\n  \"msqGradingPolicy\": \"STRICT\",\n  \"textGradingMode\": \"EXACT\",\n  \"resultRelease\": \"AUTO\"\n}"
+            },
+            "description": "Slug is auto-generated. Exam starts in DRAFT status."
+          }
+        },
+        {
+          "name": "Get exam",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/exams/{{examId}}",
+            "description": "Returns exam details with course info and counts."
+          }
+        },
+        {
+          "name": "Update exam settings",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/admin/exams/{{examId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"IE403 — Quiz 1 (Updated)\",\n  \"durationMinutes\": 120,\n  \"randomizeQuestions\": false\n}"
             }
+          }
+        },
+        {
+          "name": "Delete exam",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/admin/exams/{{examId}}",
+            "description": "Only allowed if exam has no student attempts."
           }
         }
       ]
