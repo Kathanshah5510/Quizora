@@ -1,4 +1,4 @@
-# Quizora — Claude Code Build Specification
+# Quizora — Build Specification
 
 **Project name:** Quizora  
 **Purpose:** Generic online quiz/exam platform, initially for IE403 — Machine Learning.
@@ -13,7 +13,7 @@ Do not make destructive changes, push, or deploy without approval.
 ## 0. Local development/tooling
 
 The developer currently has these tools installed:
-- **Claude Code** — primary coding agent.
+- **Code editor / coding assistant** — primary implementation tool.
 - **Google Antigravity** — optional agentic IDE/browser/testing workflow.
 - **Docker Desktop** — local PostgreSQL and reproducible local services.
 - **Postman** — API development/testing.
@@ -24,9 +24,8 @@ The developer currently has these tools installed:
 - Keep database configuration in environment variables.
 - Maintain a Postman collection for important APIs and update it as APIs change.
 - Never put production secrets in committed Docker Compose/Postman files.
-- Use Claude Code as the primary implementation agent unless explicitly changed.
 - Antigravity may be used for browser-based UI verification, visual iteration, debugging, and parallel agent work; it is not a Quizora runtime dependency.
-- If Claude Code and Antigravity both modify the same workspace, avoid simultaneous edits to the same files; use an isolated Git worktree/branch when parallel work is necessary.
+- If parallel tools both modify the same workspace, avoid simultaneous edits to the same files; use an isolated Git worktree/branch when parallel work is necessary.
 
 ## 1. Product
 Build a generic reusable online quiz/exam platform.
@@ -465,7 +464,7 @@ Goal: reliable production-capable quiz platform, initially for 200 concurrent st
 The application name is **Quizora**. Use Quizora consistently in UI branding, metadata, README, seed/demo data, documentation, and deployment configuration where appropriate.
 
 Expected development workflow:
-1. Claude Code — primary implementation.
+1. Code editor / coding assistant — primary implementation.
 2. Docker Desktop — local PostgreSQL/services.
 3. Postman — API testing.
 4. Antigravity — optional agentic/browser/UI verification.
