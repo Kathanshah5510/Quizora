@@ -9,7 +9,9 @@ export async function GET(
   const { slug } = await params;
   const { searchParams } = new URL(req.url);
   const attemptId = searchParams.get("attemptId");
-  const sessionToken = searchParams.get("sessionToken");
+  // Accept token from header (preferred — never logged) or query param (legacy fallback)
+  const sessionToken =
+    req.headers.get("x-session-token") ?? searchParams.get("sessionToken");
 
   if (!attemptId || !sessionToken) {
     return NextResponse.json(

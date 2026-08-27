@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, useTransition, Suspense } from "react";
-import { useParams, useSearchParams, useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useExamGuard } from "@/components/exam/useExamGuard";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -203,12 +203,14 @@ function QuestionView({
 
 function ExamSessionInner() {
   const params = useParams<{ slug: string; attemptId: string }>();
-  const searchParams = useSearchParams();
   const router = useRouter();
 
   const slug = params.slug;
   const attemptId = params.attemptId;
-  const sessionToken = searchParams.get("sessionToken") ?? "";
+
+  // Session token is stored in sessionStorage (never in the URL)
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
+  const [sessionMissing, setSessionMissing] = useState(false);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [payload, setPayload] = useState<QuestionPayload | null>(null);
@@ -220,18 +222,50 @@ function ExamSessionInner() {
   const [submitted, setSubmitted] = useState(false);
   const [submissionId, setSubmissionId] = useState<string | null>(null);
   const [tabViolations, setTabViolations] = useState(0);
+  const [maxTabViolations, setMaxTabViolations] = useState(2);
   const [violationWarning, setViolationWarning] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Load a question by index
+  // Read session token from sessionStorage on mount (never from URL)
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(`quizora_session_${slug}`);
+      if (!raw) {
+        setSessionMissing(true);
+        return;
+      }
+      const data = JSON.parse(raw) as { attemptId?: string; sessionToken?: string };
+      if (data.attemptId !== attemptId || !data.sessionToken) {
+        setSessionMissing(true);
+        return;
+      }
+      setSessionToken(data.sessionToken);
+    } catch {
+      setSessionMissing(true);
+    }
+  }, [slug, attemptId]);
+
+  // Fetch exam info to populate fullScreenRequired
+  useEffect(() => {
+    fetch(`/api/exam/${slug}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.exam?.fullScreenRequired) setFullScreenRequired(true);
+      })
+      .catch(() => {});
+  }, [slug]);
+
+  // Load a question by index — sessionToken sent via header, never in URL
   const loadQuestion = useCallback(
     async (index: number) => {
+      if (!sessionToken) return;
       setLoadError(null);
       try {
         const res = await fetch(
-          `/api/exam/${slug}/question?attemptId=${attemptId}&sessionToken=${encodeURIComponent(sessionToken)}&index=${index}`
+          `/api/exam/${slug}/question?attemptId=${attemptId}&index=${index}`,
+          { headers: { "X-Session-Token": sessionToken } }
         );
         const data = await res.json();
 
@@ -256,7 +290,7 @@ function ExamSessionInner() {
     [slug, attemptId, sessionToken]
   );
 
-  // Initial load + check fullScreen from search params or exam info
+  // Initial question load — fires when sessionToken is ready
   useEffect(() => {
     loadQuestion(0);
   }, [loadQuestion]);
@@ -268,7 +302,6 @@ function ExamSessionInner() {
       setRemainingSeconds((prev) => {
         if (prev <= 1) {
           clearInterval(timerRef.current!);
-          // Timer hit 0 — trigger auto-submit
           handleAutoSubmit();
           return 0;
         }
@@ -278,13 +311,14 @@ function ExamSessionInner() {
     return () => clearInterval(timerRef.current!);
   }, [submitted]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Sync timer from server every 30 seconds
+  // Sync timer from server every 30 seconds — token via header
   useEffect(() => {
-    if (submitted) return;
+    if (submitted || !sessionToken) return;
     const syncTimer = async () => {
       try {
         const res = await fetch(
-          `/api/exam/${slug}/timer?attemptId=${attemptId}&sessionToken=${encodeURIComponent(sessionToken)}`
+          `/api/exam/${slug}/timer?attemptId=${attemptId}`,
+          { headers: { "X-Session-Token": sessionToken } }
         );
         const data = await res.json();
         if (data.isExpired || data.status === "EXPIRED") {
@@ -301,7 +335,7 @@ function ExamSessionInner() {
   }, [slug, attemptId, sessionToken, submitted]);
 
   const handleAutoSubmit = useCallback(async () => {
-    if (submitted) return;
+    if (submitted || !sessionToken) return;
     setSubmitted(true);
     await fetch(`/api/exam/${slug}/submit`, {
       method: "POST",
@@ -313,6 +347,7 @@ function ExamSessionInner() {
   // Report event to server
   const reportEvent = useCallback(
     async (eventType: string, metadata?: Record<string, unknown>) => {
+      if (!sessionToken) return;
       try {
         const res = await fetch(`/api/exam/${slug}/event`, {
           method: "POST",
@@ -324,6 +359,7 @@ function ExamSessionInner() {
           setSubmitted(true);
         } else if (data.tabViolations !== undefined) {
           setTabViolations(data.tabViolations);
+          if (data.maxTabViolations !== undefined) setMaxTabViolations(data.maxTabViolations);
           setViolationWarning(true);
           setTimeout(() => setViolationWarning(false), 5000);
         }
@@ -346,7 +382,7 @@ function ExamSessionInner() {
   // Save answer
   const handleAnswer = useCallback(
     (answer: Partial<{ selectedOptionIds: string[] | null; textAnswer: string | null; numericalAnswer: number | null }>) => {
-      if (!payload || submitted) return;
+      if (!payload || submitted || !sessionToken) return;
       startTransition(async () => {
         try {
           await fetch(`/api/exam/${slug}/answer`, {
@@ -364,13 +400,13 @@ function ExamSessionInner() {
         }
       });
     },
-    [payload, submitted, slug, attemptId, sessionToken]
+    [payload, submitted, sessionToken, slug, attemptId]
   );
 
   // Navigate to question
   const navigateTo = useCallback(
     async (toIndex: number) => {
-      if (isPending) return;
+      if (isPending || !sessionToken) return;
       const navRes = await fetch(`/api/exam/${slug}/navigate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -379,7 +415,6 @@ function ExamSessionInner() {
       const navData = await navRes.json();
       if (!navRes.ok) {
         if (navData.code === "BACKWARD_NOT_ALLOWED") {
-          // Silently ignore — UI should hide back button anyway
           return;
         }
         return;
@@ -391,7 +426,7 @@ function ExamSessionInner() {
 
   // Manual submit
   const handleSubmit = async () => {
-    if (submitted) return;
+    if (submitted || !sessionToken) return;
     const res = await fetch(`/api/exam/${slug}/submit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -404,7 +439,34 @@ function ExamSessionInner() {
     }
   };
 
-  // ── Submitted state ─────────────────────────────────────────────────────────
+  // ── Session missing ──────────────────────────────────────────────────────────
+  if (sessionMissing) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="max-w-md text-center space-y-4">
+          <div className="text-4xl">🔒</div>
+          <h1 className="text-xl font-bold">Session Not Found</h1>
+          <p className="text-muted-foreground text-sm">
+            Your exam session could not be restored. This can happen if you opened the exam in a new
+            tab or browser. Please return to the start page and re-enter your details to reconnect.
+          </p>
+          <a
+            href={`/exam/${slug}/start`}
+            className="inline-block rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            Return to Start
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Waiting for sessionStorage to resolve ────────────────────────────────────
+  if (!sessionToken) {
+    return <LoadingSkeleton />;
+  }
+
+  // ── Submitted state ──────────────────────────────────────────────────────────
   if (submitted) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -443,7 +505,7 @@ function ExamSessionInner() {
               role="alert"
               className="text-xs font-medium text-destructive"
             >
-              ⚠️ Tab switch detected ({tabViolations}/2). Exam will auto-submit on next violation.
+              ⚠️ Tab switch detected ({tabViolations}/{maxTabViolations}). Exam will auto-submit on next violation.
             </span>
           )}
 

@@ -9,6 +9,27 @@ interface FormState {
   email: string;
 }
 
+const SESSION_KEY = (slug: string) => `quizora_session_${slug}`;
+
+function readStoredSession(slug: string): { sessionToken: string } | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY(slug));
+    if (!raw) return null;
+    const data = JSON.parse(raw) as { sessionToken?: string };
+    return data.sessionToken ? { sessionToken: data.sessionToken } : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredSession(slug: string, attemptId: string, sessionToken: string): void {
+  try {
+    sessionStorage.setItem(SESSION_KEY(slug), JSON.stringify({ attemptId, sessionToken }));
+  } catch {
+    // sessionStorage may be unavailable in some contexts; non-fatal
+  }
+}
+
 export default function ExamStartPage() {
   const router = useRouter();
   const params = useParams<{ slug: string }>();
@@ -45,6 +66,9 @@ export default function ExamStartPage() {
         return;
       }
 
+      // Read stored session token — present if this browser tab had an active session
+      const stored = readStoredSession(slug);
+
       // Step 2: Start or reconnect attempt
       const startRes = await fetch(`/api/exam/${slug}/start`, {
         method: "POST",
@@ -52,6 +76,8 @@ export default function ExamStartPage() {
         body: JSON.stringify({
           ...form,
           deviceFingerprint: navigator.userAgent,
+          // resumeToken lets the server grant immediate reconnect for the same browser session
+          ...(stored ? { resumeToken: stored.sessionToken } : {}),
         }),
       });
       const startData = await startRes.json();
@@ -68,11 +94,13 @@ export default function ExamStartPage() {
         return;
       }
 
-      // Navigate to exam session
       const { attemptId, sessionToken } = startData;
-      router.push(
-        `/exam/${slug}/attempt/${attemptId}?sessionToken=${sessionToken}&index=0`
-      );
+
+      // Persist session in sessionStorage so the attempt page and future reconnects can use it
+      writeStoredSession(slug, attemptId, sessionToken);
+
+      // Navigate to attempt — token is NOT in the URL (stored in sessionStorage only)
+      router.push(`/exam/${slug}/attempt/${attemptId}`);
     });
   };
 

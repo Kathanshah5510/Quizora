@@ -11,6 +11,9 @@ const BodySchema = z.object({
   email: z.string().trim().toLowerCase(),
   name: z.string().trim().min(1),
   deviceFingerprint: z.string().optional(),
+  // Present when reconnecting from the same browser tab/session (stored in sessionStorage).
+  // If it matches the attempt's current sessionToken, the grace period is waived.
+  resumeToken: z.string().optional(),
 });
 
 export async function POST(
@@ -37,7 +40,7 @@ export async function POST(
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const { studentId, email, name, deviceFingerprint } = body;
+  const { studentId, email, name, deviceFingerprint, resumeToken } = body;
 
   // Identity format
   if (!isValidStudentId(studentId)) {
@@ -124,6 +127,7 @@ export async function POST(
       expiresAt: true,
       lastActiveAt: true,
       deviceFingerprint: true,
+      sessionToken: true, // Used to verify same-browser reconnect via resumeToken
     },
   });
 
@@ -131,8 +135,15 @@ export async function POST(
     const secondsSinceActive =
       (now.getTime() - inProgressFull.lastActiveAt.getTime()) / 1000;
 
-    // Another device is actively using this attempt — deny reconnect
-    if (secondsSinceActive < RECONNECT_GRACE_SECONDS) {
+    // If the caller presents the current session token (stored in their sessionStorage),
+    // they are the same browser session — grant immediate reconnect, no grace period needed.
+    const isSameBrowserSession =
+      resumeToken != null &&
+      inProgressFull.sessionToken != null &&
+      resumeToken === inProgressFull.sessionToken;
+
+    // A different device is actively using this attempt — deny reconnect
+    if (!isSameBrowserSession && secondsSinceActive < RECONNECT_GRACE_SECONDS) {
       return NextResponse.json(
         {
           error: "Another device is currently active on this attempt. Please wait before reconnecting.",
