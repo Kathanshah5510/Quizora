@@ -112,6 +112,8 @@ export default async function ExamDetailPage({
           allowExternalStudents: exam.allowExternalStudents,
           continueAfterAvailability: exam.continueAfterAvailability,
           fullScreenRequired: exam.fullScreenRequired,
+          reconnectGraceSeconds: exam.reconnectGraceSeconds,
+          maxTabViolations: exam.maxTabViolations,
           defaultMarks: Number(exam.defaultMarks),
           defaultNegativeMarks: Number(exam.defaultNegativeMarks),
           msqGradingPolicy: exam.msqGradingPolicy,

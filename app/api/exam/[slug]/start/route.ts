@@ -73,6 +73,8 @@ export async function POST(
       randomizeQuestions: true,
       randomizeOptions: true,
       allowBacktracking: true,
+      reconnectGraceSeconds: true,
+      maxTabViolations: true,
     },
   });
 
@@ -119,7 +121,8 @@ export async function POST(
   });
 
   // Device locking: if an in-progress attempt exists, enforce one-device policy
-  const RECONNECT_GRACE_SECONDS = 30;
+  // Use exam-configured grace period (default 30s); admin can adjust per-exam
+  const RECONNECT_GRACE_SECONDS = exam.reconnectGraceSeconds;
   const inProgressFull = await db.examAttempt.findFirst({
     where: { examId: exam.id, studentId, status: "IN_PROGRESS" },
     select: {
@@ -247,6 +250,8 @@ export async function POST(
         deviceFingerprint: deviceFingerprint ?? null,
         randomizedQuestionOrder: questionOrder,
         randomizedOptionOrders: optionOrders,
+        // Snapshot integrity settings so mid-exam admin changes don't affect active students
+        maxTabViolationsSnapshot: exam.maxTabViolations,
         ipAddress: ip,
         userAgent,
       },

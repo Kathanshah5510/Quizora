@@ -159,6 +159,10 @@ model Exam {
   continueAfterAvailability Boolean @default(false)
   fullScreenRequired        Boolean @default(false)
 
+  // Integrity / anti-cheating thresholds — configurable per exam
+  reconnectGraceSeconds Int @default(30) // Seconds after lastActiveAt before another device may reconnect
+  maxTabViolations      Int @default(2)  // Number of tab/visibility violations that trigger auto-submit
+
   // Scoring defaults
   defaultMarks         Decimal @default(1)  @db.Decimal(8, 2)
   defaultNegativeMarks Decimal @default(0)  @db.Decimal(8, 2)
@@ -267,6 +271,10 @@ model ExamAttempt {
 
   // Anti-cheating counters
   tabViolations Int @default(0)
+
+  // Snapshot of exam integrity settings captured at attempt creation.
+  // Immutable after creation — protects active attempts from mid-exam admin changes.
+  maxTabViolationsSnapshot Int @default(2)
 
   // Randomization stored server-side, immutable after attempt creation
   randomizedQuestionOrder Json // String[] of question IDs in display order

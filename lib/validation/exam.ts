@@ -28,6 +28,18 @@ export const CreateExamSchema = z
     allowExternalStudents: z.boolean().default(false),
     continueAfterAvailability: z.boolean().default(false),
     fullScreenRequired: z.boolean().default(false),
+    reconnectGraceSeconds: z
+      .number()
+      .int("Must be a whole number")
+      .min(10, "Must be at least 10 seconds")
+      .max(120, "Cannot exceed 120 seconds")
+      .default(30),
+    maxTabViolations: z
+      .number()
+      .int("Must be a whole number")
+      .min(1, "Must allow at least 1 violation")
+      .max(10, "Cannot exceed 10 violations")
+      .default(2),
     defaultMarks: z.number().min(0, "Cannot be negative").max(100, "Too high").default(1),
     defaultNegativeMarks: z.number().min(0, "Cannot be negative").max(100, "Too high").default(0),
     msqGradingPolicy: z.enum(["STRICT", "PARTIAL"]).default("STRICT"),
@@ -72,6 +84,8 @@ export const UpdateExamSchema = z
     allowExternalStudents: z.boolean().optional(),
     continueAfterAvailability: z.boolean().optional(),
     fullScreenRequired: z.boolean().optional(),
+    reconnectGraceSeconds: z.number().int().min(10).max(120).optional(),
+    maxTabViolations: z.number().int().min(1).max(10).optional(),
     defaultMarks: z.number().min(0).max(100).optional(),
     defaultNegativeMarks: z.number().min(0).max(100).optional(),
     msqGradingPolicy: z.enum(["STRICT", "PARTIAL"]).optional(),
@@ -116,6 +130,8 @@ export function parseExamFormData(formData: FormData): Record<string, unknown> {
     allowExternalStudents: formData.has("allowExternalStudents"),
     continueAfterAvailability: formData.has("continueAfterAvailability"),
     fullScreenRequired: formData.has("fullScreenRequired"),
+    reconnectGraceSeconds: Number(formData.get("reconnectGraceSeconds")) || 30,
+    maxTabViolations: Number(formData.get("maxTabViolations")) || 2,
     defaultMarks: Number(formData.get("defaultMarks")) || 1,
     defaultNegativeMarks: Number(formData.get("defaultNegativeMarks")) || 0,
     msqGradingPolicy: (formData.get("msqGradingPolicy") as string) || "STRICT",

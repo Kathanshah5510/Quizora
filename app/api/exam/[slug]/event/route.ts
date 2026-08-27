@@ -5,7 +5,6 @@ import { db } from "@/lib/db";
 import { computeTimerState } from "@/lib/exam/timer";
 
 const TAB_VIOLATION_EVENTS = ["TAB_SWITCHED", "VISIBILITY_CHANGED"] as const;
-const MAX_TAB_VIOLATIONS = 2; // fallback; overridden by attempt.maxTabViolationsSnapshot in 4.1C
 
 const BodySchema = z.object({
   attemptId: z.string(),
@@ -46,6 +45,7 @@ export async function POST(
       id: true,
       status: true,
       expiresAt: true,
+      maxTabViolationsSnapshot: true, // Immutable snapshot from exam config at attempt creation
     },
   });
 
@@ -91,7 +91,7 @@ export async function POST(
     });
     newTabViolations = updated.tabViolations;
 
-    if (newTabViolations >= MAX_TAB_VIOLATIONS) {
+    if (newTabViolations >= attempt.maxTabViolationsSnapshot) {
       // Conditional update: only the request that first observes status=IN_PROGRESS
       // will actually transition to SUBMITTED. Concurrent requests get count=0 and
       // return autoSubmitted=true without double-writing the event.
@@ -121,7 +121,7 @@ export async function POST(
   return NextResponse.json({
     recorded: true,
     tabViolations: newTabViolations,
-    maxTabViolations: MAX_TAB_VIOLATIONS,
+    maxTabViolations: attempt.maxTabViolationsSnapshot,
     autoSubmitted,
     remainingSeconds: timer.remainingSeconds,
     ...(autoSubmitted ? { status: "SUBMITTED" } : {}),

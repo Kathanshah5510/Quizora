@@ -24,6 +24,8 @@ type DefaultValues = {
   allowExternalStudents?: boolean;
   continueAfterAvailability?: boolean;
   fullScreenRequired?: boolean;
+  reconnectGraceSeconds?: number;
+  maxTabViolations?: number;
   defaultMarks?: number;
   defaultNegativeMarks?: number;
   msqGradingPolicy?: string;
@@ -321,6 +323,41 @@ export default function ExamForm({ action, courses, defaultValues, isEdit = fals
               defaultChecked={defaultValues?.continueAfterAvailability ?? false}
               disabled={pending}
             />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-border">
+            <div className="space-y-1.5">
+              <Label htmlFor="reconnectGraceSeconds">Device reconnect grace period (seconds)</Label>
+              <input
+                id="reconnectGraceSeconds"
+                name="reconnectGraceSeconds"
+                type="number"
+                min={10}
+                max={120}
+                defaultValue={defaultValues?.reconnectGraceSeconds ?? 30}
+                disabled={pending}
+                className={inputCls}
+              />
+              <p className="text-xs text-muted-foreground">
+                How long another device must be inactive before a different device can reconnect (10–120 s).
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="maxTabViolations">Tab-switch violations before auto-submit</Label>
+              <input
+                id="maxTabViolations"
+                name="maxTabViolations"
+                type="number"
+                min={1}
+                max={10}
+                defaultValue={defaultValues?.maxTabViolations ?? 2}
+                disabled={pending}
+                className={inputCls}
+              />
+              <p className="text-xs text-muted-foreground">
+                Number of tab-switch / visibility-change events that trigger automatic submission (1–10).
+              </p>
+            </div>
           </div>
         </div>
       </FormSection>
