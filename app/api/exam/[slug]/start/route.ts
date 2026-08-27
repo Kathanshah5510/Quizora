@@ -24,15 +24,6 @@ export async function POST(
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
   const userAgent = req.headers.get("user-agent") ?? null;
 
-  // Rate limit: 5 start attempts per IP per minute
-  const rl = checkRateLimit(`start:${ip ?? "unknown"}:${slug}`, 5, 60);
-  if (!rl.allowed) {
-    return NextResponse.json(
-      { error: "Too many attempts. Please wait.", retryAfterSeconds: rl.retryAfterSeconds },
-      { status: 429 }
-    );
-  }
-
   let body: z.infer<typeof BodySchema>;
   try {
     body = BodySchema.parse(await req.json());
@@ -41,6 +32,26 @@ export async function POST(
   }
 
   const { studentId, email, name, deviceFingerprint, resumeToken } = body;
+
+  // Rate limit keyed by studentId+slug so 130+ students from the same NAT/IP
+  // (university lab, corporate network) each get their own independent bucket.
+  // A single student is limited to 5 start attempts per minute; concurrent
+  // students from the same IP never share a bucket and are never blocked by
+  // each other. A loose IP-level guard covers unauthenticated pre-parse abuse.
+  const ipRl = checkRateLimit(`start:ip:${ip ?? "unknown"}`, 600, 60); // 600/min per IP — prevents raw flood
+  if (!ipRl.allowed) {
+    return NextResponse.json(
+      { error: "Too many attempts from this network. Please wait.", retryAfterSeconds: ipRl.retryAfterSeconds },
+      { status: 429 }
+    );
+  }
+  const studentRl = checkRateLimit(`start:${studentId}:${slug}`, 5, 60); // 5/min per student per exam
+  if (!studentRl.allowed) {
+    return NextResponse.json(
+      { error: "Too many attempts. Please wait.", retryAfterSeconds: studentRl.retryAfterSeconds },
+      { status: 429 }
+    );
+  }
 
   // Identity format
   if (!isValidStudentId(studentId)) {
