@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { validateNavigation } from "@/lib/exam/navigation";
 import { computeTimerState } from "@/lib/exam/timer";
+import { checkRateLimit } from "@/lib/exam/rateLimit";
 
 export async function POST(
   req: NextRequest,
@@ -31,6 +32,15 @@ export async function POST(
     !Number.isInteger(toIndex)
   ) {
     return NextResponse.json({ error: "fromIndex and toIndex must be integers" }, { status: 400 });
+  }
+
+  // Per-attempt rate limit: 60/min — generous for fast navigation, blocks automated enumeration
+  const rl = checkRateLimit(`navigate:${attemptId}`, 60, 60);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too many navigation requests", retryAfterSeconds: rl.retryAfterSeconds },
+      { status: 429 }
+    );
   }
 
   const attempt = await db.examAttempt.findFirst({

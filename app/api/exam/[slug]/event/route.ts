@@ -3,6 +3,7 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { computeTimerState } from "@/lib/exam/timer";
+import { checkRateLimit } from "@/lib/exam/rateLimit";
 
 const TAB_VIOLATION_EVENTS = ["TAB_SWITCHED", "VISIBILITY_CHANGED"] as const;
 
@@ -34,6 +35,15 @@ export async function POST(
   }
 
   const { attemptId, sessionToken, eventType, metadata } = body;
+
+  // Per-attempt rate limit: 20/min — prevents event spam while accommodating real-time monitoring
+  const rl = checkRateLimit(`event:${attemptId}`, 20, 60);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too many event reports", retryAfterSeconds: rl.retryAfterSeconds },
+      { status: 429 }
+    );
+  }
 
   const attempt = await db.examAttempt.findFirst({
     where: {

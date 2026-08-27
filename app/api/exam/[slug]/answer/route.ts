@@ -3,6 +3,7 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { computeTimerState } from "@/lib/exam/timer";
+import { checkRateLimit } from "@/lib/exam/rateLimit";
 
 const BodySchema = z.object({
   attemptId: z.string(),
@@ -28,6 +29,15 @@ export async function POST(
   }
 
   const { attemptId, sessionToken, questionId, selectedOptionIds, textAnswer, numericalAnswer } = body;
+
+  // Per-attempt rate limit: 30/min — allows rapid answer cycling without blocking normal exam use
+  const rl = checkRateLimit(`answer:${attemptId}`, 30, 60);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too many answer submissions", retryAfterSeconds: rl.retryAfterSeconds },
+      { status: 429 }
+    );
+  }
 
   // Validate session
   const attempt = await db.examAttempt.findFirst({

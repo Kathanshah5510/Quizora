@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { computeTimerState } from "@/lib/exam/timer";
+import { checkRateLimit } from "@/lib/exam/rateLimit";
 
 export async function GET(
   req: NextRequest,
@@ -9,14 +10,13 @@ export async function GET(
   const { slug } = await params;
   const { searchParams } = new URL(req.url);
   const attemptId = searchParams.get("attemptId");
-  // Accept token from header (preferred — never logged) or query param (legacy fallback)
-  const sessionToken =
-    req.headers.get("x-session-token") ?? searchParams.get("sessionToken");
+  // Token is read only from the X-Session-Token header — never from URL query params
+  const sessionToken = req.headers.get("x-session-token");
   const indexParam = searchParams.get("index"); // 0-based position in randomized order
 
   if (!attemptId || !sessionToken) {
     return NextResponse.json(
-      { error: "attemptId and sessionToken are required" },
+      { error: "attemptId and X-Session-Token header are required" },
       { status: 400 }
     );
   }
@@ -24,6 +24,15 @@ export async function GET(
   const index = indexParam !== null ? parseInt(indexParam, 10) : 0;
   if (isNaN(index) || index < 0) {
     return NextResponse.json({ error: "index must be a non-negative integer" }, { status: 400 });
+  }
+
+  // Per-attempt rate limit: 30/min — generous for navigation but blocks hammering
+  const rl = checkRateLimit(`question:${attemptId}`, 30, 60);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too many question requests", retryAfterSeconds: rl.retryAfterSeconds },
+      { status: 429 }
+    );
   }
 
   // Load attempt — verify session token and slug together

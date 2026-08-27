@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { computeTimerState } from "@/lib/exam/timer";
+import { checkRateLimit } from "@/lib/exam/rateLimit";
 
 export async function GET(
   req: NextRequest,
@@ -9,14 +10,22 @@ export async function GET(
   const { slug } = await params;
   const { searchParams } = new URL(req.url);
   const attemptId = searchParams.get("attemptId");
-  // Accept token from header (preferred — never logged) or query param (legacy fallback)
-  const sessionToken =
-    req.headers.get("x-session-token") ?? searchParams.get("sessionToken");
+  // Token is read only from the X-Session-Token header — never from URL query params
+  const sessionToken = req.headers.get("x-session-token");
 
   if (!attemptId || !sessionToken) {
     return NextResponse.json(
-      { error: "attemptId and sessionToken are required" },
+      { error: "attemptId and X-Session-Token header are required" },
       { status: 400 }
+    );
+  }
+
+  // Per-attempt rate limit: timer is polled every 30s; 10/min allows 5x the expected rate
+  const rl = checkRateLimit(`timer:${attemptId}`, 10, 60);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too many timer requests", retryAfterSeconds: rl.retryAfterSeconds },
+      { status: 429 }
     );
   }
 
@@ -54,11 +63,11 @@ export async function GET(
 
   // Auto-submit if expired and still in progress
   if (timer.isExpired && attempt.status === "IN_PROGRESS") {
-    await db.examAttempt.update({
-      where: { id: attemptId },
+    await db.examAttempt.updateMany({
+      where: { id: attemptId, status: "IN_PROGRESS" },
       data: {
         status: "EXPIRED",
-        submittedAt: attempt.expiresAt, // Submission time = when it expired, not now
+        submittedAt: attempt.expiresAt,
       },
     });
 
