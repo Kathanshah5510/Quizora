@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { computeTimerState } from "@/lib/exam/timer";
 
 const TAB_VIOLATION_EVENTS = ["TAB_SWITCHED", "VISIBILITY_CHANGED"] as const;
-const MAX_TAB_VIOLATIONS = 2;
+const MAX_TAB_VIOLATIONS = 2; // fallback; overridden by attempt.maxTabViolationsSnapshot in 4.1C
 
 const BodySchema = z.object({
   attemptId: z.string(),
@@ -46,7 +46,6 @@ export async function POST(
       id: true,
       status: true,
       expiresAt: true,
-      tabViolations: true,
     },
   });
 
@@ -61,8 +60,8 @@ export async function POST(
   const now = new Date();
   const timer = computeTimerState(attempt.expiresAt, now);
   if (timer.isExpired) {
-    await db.examAttempt.update({
-      where: { id: attemptId },
+    await db.examAttempt.updateMany({
+      where: { id: attemptId, status: "IN_PROGRESS" },
       data: { status: "EXPIRED", submittedAt: attempt.expiresAt },
     });
     return NextResponse.json({ error: "Attempt has expired", status: "EXPIRED" }, { status: 409 });
@@ -77,37 +76,40 @@ export async function POST(
     },
   });
 
-  // Tab violation counting
   const isTabViolation = (TAB_VIOLATION_EVENTS as readonly string[]).includes(eventType);
-  let newTabViolations = attempt.tabViolations;
+  let newTabViolations = 0;
   let autoSubmitted = false;
 
   if (isTabViolation) {
-    newTabViolations = attempt.tabViolations + 1;
+    // Atomic increment eliminates the TOCTOU race: each concurrent request receives
+    // a distinct post-increment value from the database, so exactly one request
+    // will observe the threshold being crossed.
+    const updated = await db.examAttempt.update({
+      where: { id: attemptId },
+      data: { tabViolations: { increment: 1 }, lastActiveAt: now },
+      select: { tabViolations: true },
+    });
+    newTabViolations = updated.tabViolations;
 
     if (newTabViolations >= MAX_TAB_VIOLATIONS) {
-      // Auto-submit: exceeded violation limit
-      await db.examAttempt.update({
-        where: { id: attemptId },
-        data: {
-          tabViolations: newTabViolations,
-          status: "SUBMITTED",
-          submittedAt: now,
-        },
+      // Conditional update: only the request that first observes status=IN_PROGRESS
+      // will actually transition to SUBMITTED. Concurrent requests get count=0 and
+      // return autoSubmitted=true without double-writing the event.
+      const submitResult = await db.examAttempt.updateMany({
+        where: { id: attemptId, status: "IN_PROGRESS" },
+        data: { status: "SUBMITTED", submittedAt: now },
       });
-      await db.examEvent.create({
-        data: {
-          attemptId,
-          eventType: "AUTO_SUBMITTED",
-          metadata: { reason: "TAB_VIOLATION", violations: newTabViolations },
-        },
-      });
+
+      if (submitResult.count > 0) {
+        await db.examEvent.create({
+          data: {
+            attemptId,
+            eventType: "AUTO_SUBMITTED",
+            metadata: { reason: "TAB_VIOLATION", violations: newTabViolations } as Prisma.InputJsonValue,
+          },
+        });
+      }
       autoSubmitted = true;
-    } else {
-      await db.examAttempt.update({
-        where: { id: attemptId },
-        data: { tabViolations: newTabViolations, lastActiveAt: now },
-      });
     }
   } else {
     await db.examAttempt.update({

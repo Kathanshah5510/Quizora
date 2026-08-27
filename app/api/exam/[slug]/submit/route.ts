@@ -43,11 +43,6 @@ export async function POST(
       submissionId: true,
       submittedAt: true,
       expiresAt: true,
-      exam: {
-        select: {
-          resultRelease: true,
-        },
-      },
     },
   });
 
@@ -55,7 +50,7 @@ export async function POST(
     return NextResponse.json({ error: "Attempt not found or invalid session" }, { status: 404 });
   }
 
-  // Idempotent: already submitted
+  // Idempotent: already submitted/expired — return the authoritative stored state
   if (attempt.status === "SUBMITTED" || attempt.status === "EXPIRED") {
     return NextResponse.json({
       submitted: true,
@@ -74,8 +69,9 @@ export async function POST(
 
   // If already expired, record as EXPIRED instead of SUBMITTED
   if (timer.isExpired) {
-    await db.examAttempt.update({
-      where: { id: attemptId },
+    // Use updateMany with conditional status filter to avoid race with other expiry writers
+    await db.examAttempt.updateMany({
+      where: { id: attemptId, status: "IN_PROGRESS" },
       data: { status: "EXPIRED", submittedAt: attempt.expiresAt },
     });
     await db.examEvent.create({
@@ -93,16 +89,37 @@ export async function POST(
     });
   }
 
+  // Generate a submission ID before the conditional update.
+  // If another concurrent request wins the race, this value is discarded;
+  // the student always receives the ID that is actually in the database.
   const submissionId = generateSubmissionId();
 
-  await db.examAttempt.update({
-    where: { id: attemptId },
+  // Atomic conditional update: only updates the row if it is still IN_PROGRESS.
+  // PostgreSQL acquires a row lock on UPDATE; a concurrent request waits, then
+  // re-evaluates the WHERE clause and gets count=0 if we already moved to SUBMITTED.
+  const result = await db.examAttempt.updateMany({
+    where: { id: attemptId, status: "IN_PROGRESS" },
     data: {
       status: "SUBMITTED",
       submittedAt: now,
       submissionId,
     },
   });
+
+  if (result.count === 0) {
+    // A concurrent request (manual submit, auto-submit, or tab-violation) already
+    // transitioned this attempt. Read back the authoritative stored state.
+    const existing = await db.examAttempt.findUnique({
+      where: { id: attemptId },
+      select: { status: true, submissionId: true, submittedAt: true },
+    });
+    return NextResponse.json({
+      submitted: true,
+      submissionId: existing?.submissionId ?? null,
+      submittedAt: existing?.submittedAt?.toISOString() ?? null,
+      status: existing?.status ?? "SUBMITTED",
+    });
+  }
 
   await db.examEvent.create({
     data: {
