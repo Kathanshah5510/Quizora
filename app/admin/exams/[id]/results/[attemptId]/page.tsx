@@ -174,6 +174,16 @@ export default async function AttemptReviewPage({ params }: Props) {
         )}
       </div>
 
+      {/* Event timeline link */}
+      <div className="flex justify-end">
+        <Link
+          href={`/admin/exams/${examId}/results/${attemptId}/events`}
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          View Event Timeline →
+        </Link>
+      </div>
+
       {/* Score Summary */}
       {resultSummary ? (
         <div className="rounded-xl border border-border bg-card px-6 py-5 flex flex-wrap items-center gap-6">
