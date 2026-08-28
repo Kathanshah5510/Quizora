@@ -93,12 +93,18 @@ export default async function QuestionsPage({
             </p>
           </div>
           {canEdit && (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 justify-end">
               <Link
                 href={`/admin/exams/${examId}/questions/import`}
                 className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors whitespace-nowrap"
               >
                 ↑ Import CSV
+              </Link>
+              <Link
+                href={`/admin/exams/${examId}/questions/import-pdf`}
+                className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors whitespace-nowrap"
+              >
+                📄 Import PDF
               </Link>
               <Link
                 href={`/admin/exams/${examId}/questions/new`}
