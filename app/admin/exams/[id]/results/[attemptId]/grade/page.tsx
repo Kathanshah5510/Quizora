@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import GradeResponseForm from "./GradeResponseForm";
+import AIGradeControls from "./AIGradeControls";
 
 export const metadata: Metadata = { title: "Grade Responses" };
 
@@ -32,7 +33,21 @@ export default async function GradeResponsesPage({ params }: Props) {
         },
       },
       responses: {
-        select: { id: true, questionId: true, textAnswer: true },
+        select: {
+          id: true,
+          questionId: true,
+          textAnswer: true,
+          aiGrading: {
+            select: {
+              id: true,
+              aiScore: true,
+              aiRationale: true,
+              aiModel: true,
+              adminApprovedScore: true,
+              status: true,
+            },
+          },
+        },
       },
     },
   });
@@ -139,16 +154,38 @@ export default async function GradeResponsesPage({ params }: Props) {
 
                   {/* Grade form — only when response exists */}
                   {resp ? (
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Assign marks</p>
-                      <GradeResponseForm
+                    <>
+                      {/* AI grading suggestion */}
+                      <AIGradeControls
                         examId={examId}
                         attemptId={attemptId}
                         responseId={resp.id}
                         maxMarks={Number(q.marks)}
-                        currentEarned={existing?.status === "graded" ? existing.earned : null}
+                        aiGrading={
+                          resp.aiGrading
+                            ? {
+                                aiScore: Number(resp.aiGrading.aiScore),
+                                aiRationale: resp.aiGrading.aiRationale ?? "",
+                                aiModel: resp.aiGrading.aiModel ?? "",
+                                adminApprovedScore: resp.aiGrading.adminApprovedScore != null
+                                  ? Number(resp.aiGrading.adminApprovedScore)
+                                  : null,
+                                status: resp.aiGrading.status,
+                              }
+                            : null
+                        }
                       />
-                    </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Assign marks manually</p>
+                        <GradeResponseForm
+                          examId={examId}
+                          attemptId={attemptId}
+                          responseId={resp.id}
+                          maxMarks={Number(q.marks)}
+                          currentEarned={existing?.status === "graded" ? existing.earned : null}
+                        />
+                      </div>
+                    </>
                   ) : (
                     <p className="text-xs text-muted-foreground">
                       No response submitted — question was skipped.
