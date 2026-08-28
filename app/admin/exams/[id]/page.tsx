@@ -172,6 +172,23 @@ export default async function ExamDetailPage({
           Manage Roster →
         </Link>
       </div>
+
+      {/* Results */}
+      <div className="rounded-xl border border-border bg-card px-6 py-4 flex items-center justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium text-foreground">Results</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {exam._count.attempts} attempt{exam._count.attempts !== 1 ? "s" : ""}
+            {" · "}Release: {exam.resultRelease === "AUTO" ? "Automatic" : "Manual"}
+          </p>
+        </div>
+        <Link
+          href={`/admin/exams/${exam.id}/results`}
+          className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors whitespace-nowrap"
+        >
+          View Results →
+        </Link>
+      </div>
     </div>
   );
 }
