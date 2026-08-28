@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { formatDateTime } from "@/lib/utils";
 import { buildResultSummary } from "@/lib/results/resultDomain";
 import ResultsFilterBar from "./ResultsFilterBar";
+import ReleaseToggle from "./ReleaseToggle";
 
 export const metadata: Metadata = { title: "Results" };
 
@@ -61,6 +62,11 @@ export default async function ResultsPage({ params, searchParams }: Props) {
       : {}),
   };
 
+  const anyReleased =
+    exam.resultRelease === "MANUAL"
+      ? (await db.result.count({ where: { attempt: { examId }, isReleased: true } })) > 0
+      : false;
+
   const [total, attempts] = await Promise.all([
     db.examAttempt.count({ where }),
     db.examAttempt.findMany({
@@ -110,12 +116,17 @@ export default async function ResultsPage({ params, searchParams }: Props) {
             <span className="font-medium">{exam.resultRelease === "AUTO" ? "Automatic" : "Manual"}</span>
           </p>
         </div>
-        <Link
-          href={`/api/admin/exams/${examId}/results/export`}
-          className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors whitespace-nowrap"
-        >
-          Export CSV
-        </Link>
+        <div className="flex items-center gap-2">
+          {exam.resultRelease === "MANUAL" && (
+            <ReleaseToggle examId={examId} anyReleased={anyReleased} />
+          )}
+          <Link
+            href={`/api/admin/exams/${examId}/results/export`}
+            className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors whitespace-nowrap"
+          >
+            Export CSV
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}
