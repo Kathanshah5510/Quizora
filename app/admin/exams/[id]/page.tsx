@@ -173,6 +173,24 @@ export default async function ExamDetailPage({
         </Link>
       </div>
 
+      {/* Monitor */}
+      {["PUBLISHED", "ACTIVE"].includes(exam.status) && (
+        <div className="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/10 px-6 py-4 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-foreground">Live Monitor</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {exam._count.attempts} attempt{exam._count.attempts !== 1 ? "s" : ""} — view real-time activity
+            </p>
+          </div>
+          <Link
+            href={`/admin/exams/${exam.id}/monitor`}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors whitespace-nowrap"
+          >
+            Open Monitor →
+          </Link>
+        </div>
+      )}
+
       {/* Results */}
       <div className="rounded-xl border border-border bg-card px-6 py-4 flex items-center justify-between gap-4">
         <div>
