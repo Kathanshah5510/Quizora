@@ -148,12 +148,22 @@ export default async function ExamDetailPage({
             {exam._count.questions === 0 && " — add questions before publishing"}
           </p>
         </div>
-        <Link
-          href={`/admin/exams/${exam.id}/questions`}
-          className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors whitespace-nowrap"
-        >
-          Manage Questions →
-        </Link>
+        <div className="flex items-center gap-2">
+          {exam._count.questions > 0 && (
+            <Link
+              href={`/admin/exams/${exam.id}/preview`}
+              className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors whitespace-nowrap"
+            >
+              Preview →
+            </Link>
+          )}
+          <Link
+            href={`/admin/exams/${exam.id}/questions`}
+            className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors whitespace-nowrap"
+          >
+            Manage Questions →
+          </Link>
+        </div>
       </div>
 
       {/* Roster */}
