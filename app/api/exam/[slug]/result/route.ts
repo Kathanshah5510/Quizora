@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { buildResultSummary, isResultVisibleToStudent } from "@/lib/results/resultDomain";
+import type { PerQuestionMark } from "@/lib/results/resultDomain";
 
 export async function GET(
   req: NextRequest,
@@ -28,6 +29,8 @@ export async function GET(
       studentName: true,
       startedAt: true,
       submittedAt: true,
+      submissionId: true,
+      examId: true,
       exam: {
         select: {
           title: true,
@@ -41,6 +44,15 @@ export async function GET(
           gradingStatus: true,
           isReleased: true,
           releasedAt: true,
+          perQuestionMarks: true,
+        },
+      },
+      responses: {
+        select: {
+          questionId: true,
+          selectedOptionIds: true,
+          textAnswer: true,
+          numericalAnswer: true,
         },
       },
     },
@@ -78,16 +90,79 @@ export async function GET(
     });
   }
 
+  // Build per-question breakdown with correct answers (only sent when result is released)
+  const questions = await db.question.findMany({
+    where: { examId: attempt.examId },
+    orderBy: { displayOrder: "asc" },
+    select: {
+      id: true,
+      type: true,
+      text: true,
+      marks: true,
+      negativeMarks: true,
+      numericalAnswer: true,
+      numericalTolerance: true,
+      textAnswer: true,
+      displayOrder: true,
+      options: {
+        orderBy: { displayOrder: "asc" },
+        select: { id: true, text: true, isCorrect: true },
+      },
+    },
+  });
+
+  const responseMap = new Map(attempt.responses.map((r) => [r.questionId, r]));
+  const perQ = (attempt.result.perQuestionMarks ?? {}) as unknown as Record<string, PerQuestionMark>;
+
+  const questionBreakdown = questions.map((q) => {
+    const resp = responseMap.get(q.id) ?? null;
+    const grade = perQ[q.id] ?? null;
+
+    return {
+      questionId: q.id,
+      type: q.type,
+      text: q.text,
+      displayOrder: q.displayOrder,
+      marks: Number(q.marks),
+      // Student's response
+      selectedOptionIds: resp
+        ? (Array.isArray(resp.selectedOptionIds)
+            ? (resp.selectedOptionIds as string[])
+            : null)
+        : null,
+      textAnswer: resp?.textAnswer ?? null,
+      numericalAnswer: resp?.numericalAnswer != null ? Number(resp.numericalAnswer) : null,
+      // Correct answer (only in released results — not during active exam)
+      correctOptionIds: q.options.filter((o) => o.isCorrect).map((o) => o.id),
+      correctNumericalAnswer: q.numericalAnswer != null ? Number(q.numericalAnswer) : null,
+      correctNumericalTolerance: q.numericalTolerance != null ? Number(q.numericalTolerance) : null,
+      expectedTextAnswer: q.textAnswer,
+      // Options list for MCQ/MSQ display
+      options: q.options.map((o) => ({
+        id: o.id,
+        text: o.text,
+        isCorrect: o.isCorrect,
+      })),
+      // Per-question grade
+      earned: grade?.earned ?? null,
+      maxForQuestion: grade?.max ?? Number(q.marks),
+      isCorrect: grade?.isCorrect ?? null,
+      gradingStatus: grade?.status ?? "pending",
+    };
+  });
+
   return NextResponse.json({
     visible: true,
     examTitle: attempt.exam.title,
     studentName: attempt.studentName,
     studentId: attempt.studentId,
+    submissionId: attempt.submissionId,
     startedAt: attempt.startedAt.toISOString(),
     submittedAt: attempt.submittedAt?.toISOString() ?? null,
     totalScore: summary.totalScore,
     maxScore: summary.maxScore,
     percentage: summary.percentage,
     gradingStatus: summary.gradingStatus,
+    questions: questionBreakdown,
   });
 }
