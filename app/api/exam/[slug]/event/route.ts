@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { computeTimerState } from "@/lib/exam/timer";
 import { checkRateLimit } from "@/lib/exam/rateLimit";
+import { autoGradeAttempt } from "@/lib/grading/autoGradeAttempt";
 
 const TAB_VIOLATION_EVENTS = ["TAB_SWITCHED", "VISIBILITY_CHANGED"] as const;
 
@@ -70,10 +71,13 @@ export async function POST(
   const now = new Date();
   const timer = computeTimerState(attempt.expiresAt, now);
   if (timer.isExpired) {
-    await db.examAttempt.updateMany({
+    const expireResult = await db.examAttempt.updateMany({
       where: { id: attemptId, status: "IN_PROGRESS" },
       data: { status: "EXPIRED", submittedAt: attempt.expiresAt },
     });
+    if (expireResult.count > 0) {
+      try { await autoGradeAttempt(attemptId); } catch { /* grading failure is non-fatal */ }
+    }
     return NextResponse.json({ error: "Attempt has expired", status: "EXPIRED" }, { status: 409 });
   }
 
@@ -118,6 +122,7 @@ export async function POST(
             metadata: { reason: "TAB_VIOLATION", violations: newTabViolations } as Prisma.InputJsonValue,
           },
         });
+        try { await autoGradeAttempt(attemptId); } catch { /* grading failure is non-fatal */ }
       }
       autoSubmitted = true;
     }

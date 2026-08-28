@@ -3,6 +3,7 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { computeTimerState } from "@/lib/exam/timer";
+import { autoGradeAttempt } from "@/lib/grading/autoGradeAttempt";
 
 const BodySchema = z.object({
   attemptId: z.string(),
@@ -70,7 +71,7 @@ export async function POST(
   // If already expired, record as EXPIRED instead of SUBMITTED
   if (timer.isExpired) {
     // Use updateMany with conditional status filter to avoid race with other expiry writers
-    await db.examAttempt.updateMany({
+    const expireResult = await db.examAttempt.updateMany({
       where: { id: attemptId, status: "IN_PROGRESS" },
       data: { status: "EXPIRED", submittedAt: attempt.expiresAt },
     });
@@ -81,11 +82,22 @@ export async function POST(
         metadata: Prisma.JsonNull,
       },
     });
+    // Auto-grade on expiry (idempotent — safe even if another path already graded)
+    let gradingStatus: string | undefined;
+    if (expireResult.count > 0) {
+      try {
+        const graded = await autoGradeAttempt(attemptId);
+        gradingStatus = graded?.gradingStatus;
+      } catch {
+        // Grading failure must not fail the submission response
+      }
+    }
     return NextResponse.json({
       submitted: true,
       submissionId: null,
       submittedAt: attempt.expiresAt.toISOString(),
       status: "EXPIRED",
+      ...(gradingStatus !== undefined ? { gradingStatus } : {}),
     });
   }
 
@@ -129,10 +141,20 @@ export async function POST(
     },
   });
 
+  // Auto-grade synchronously so gradingStatus is available in the response
+  let gradingStatus: string | undefined;
+  try {
+    const graded = await autoGradeAttempt(attemptId);
+    gradingStatus = graded?.gradingStatus;
+  } catch {
+    // Grading failure must not fail the submission response
+  }
+
   return NextResponse.json({
     submitted: true,
     submissionId,
     submittedAt: now.toISOString(),
     status: "SUBMITTED",
+    ...(gradingStatus !== undefined ? { gradingStatus } : {}),
   });
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { computeTimerState } from "@/lib/exam/timer";
 import { checkRateLimit } from "@/lib/exam/rateLimit";
+import { autoGradeAttempt } from "@/lib/grading/autoGradeAttempt";
 
 export async function GET(
   req: NextRequest,
@@ -63,13 +64,17 @@ export async function GET(
 
   // Auto-submit if expired and still in progress
   if (timer.isExpired && attempt.status === "IN_PROGRESS") {
-    await db.examAttempt.updateMany({
+    const expireResult = await db.examAttempt.updateMany({
       where: { id: attemptId, status: "IN_PROGRESS" },
       data: {
         status: "EXPIRED",
         submittedAt: attempt.expiresAt,
       },
     });
+    // Auto-grade on timer expiry (only when this request won the race)
+    if (expireResult.count > 0) {
+      try { await autoGradeAttempt(attemptId); } catch { /* grading failure is non-fatal */ }
+    }
 
     return NextResponse.json({
       remainingSeconds: 0,
