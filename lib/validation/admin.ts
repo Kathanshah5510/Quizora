@@ -33,3 +33,4 @@ export const ChangePasswordSchema = z
 
 export type LoginInput = z.infer<typeof LoginSchema>;
 export type CreateAdminInput = z.infer<typeof CreateAdminSchema>;
+export type ChangePasswordInput = z.infer<typeof ChangePasswordSchema>;

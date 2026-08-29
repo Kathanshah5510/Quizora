@@ -14,6 +14,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Courses", href: "/admin/courses" },
   { label: "Exams", href: "/admin/exams" },
   { label: "Admins", href: "/admin/users", superAdminOnly: true },
+  { label: "Profile", href: "/admin/profile" },
 ];
 
 interface Props {
