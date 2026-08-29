@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useMemo } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { reorderQuestionsAction, duplicateQuestionAction } from "./actions";
 
 interface QuestionRow {
@@ -261,11 +262,12 @@ function QuestionPreview({ question }: { question: QuestionRow }) {
     <div className="space-y-3">
       {/* Image thumbnail for IMAGE_BASED */}
       {question.mediaUrl && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <Image
           src={question.mediaUrl}
           alt="Question image"
-          className="rounded-lg border border-border max-h-48 max-w-full object-contain bg-muted"
+          width={600}
+          height={192}
+          className="rounded-lg border border-border max-h-48 w-auto object-contain bg-muted"
         />
       )}
 

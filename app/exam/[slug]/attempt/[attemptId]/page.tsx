@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useTransition, Suspense } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useExamGuard } from "@/components/exam/useExamGuard";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -131,11 +132,12 @@ function QuestionView({
       </div>
 
       {question.mediaUrl && (
-        <img
+        <Image
           src={question.mediaUrl}
           alt="Question illustration"
-          className="max-w-full rounded border"
-          loading="lazy"
+          width={800}
+          height={600}
+          className="max-w-full h-auto rounded border"
         />
       )}
 
@@ -158,7 +160,7 @@ function QuestionView({
                 >
                   {opt.text}
                   {opt.mediaUrl && (
-                    <img src={opt.mediaUrl} alt="" className="mt-2 max-h-24 rounded" />
+                    <Image src={opt.mediaUrl} alt="" width={400} height={96} className="mt-2 max-h-24 w-auto rounded" />
                   )}
                 </button>
               </li>

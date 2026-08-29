@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import MediaUploader from "./MediaUploader";
 
-type QuestionType = "MCQ" | "MSQ" | "TRUE_FALSE" | "SHORT_TEXT" | "NUMERICAL" | "IMAGE_BASED";
+export type QuestionType = "MCQ" | "MSQ" | "TRUE_FALSE" | "SHORT_TEXT" | "NUMERICAL" | "IMAGE_BASED";
 
 interface OptionState {
   text: string;

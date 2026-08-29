@@ -3,7 +3,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
-import QuestionForm from "@/components/admin/QuestionForm";
+import dynamic from "next/dynamic";
+const QuestionForm = dynamic(() => import("@/components/admin/QuestionForm"), {
+  loading: () => <div className="animate-pulse rounded-xl bg-muted h-64" />,
+});
 import { createQuestionAction } from "../actions";
 
 export const metadata: Metadata = { title: "New Question" };
