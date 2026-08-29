@@ -86,9 +86,16 @@ npm run test:e2e      # Playwright E2E (requires running server)
 
 ## E2E test scenarios (Playwright)
 
-Phase 8 implements full Playwright tests for:
-1. Admin logs in → creates exam → publishes → closes
-2. Student navigates to exam URL → enters identity → starts → answers → submits → sees confirmation
-3. Student tries to reconnect after accidental closure → resumes correctly
-4. Student tries to submit again → idempotent
-5. Student opens exam on second device → first device gets 401
+All 6 tests run against the live dev server (`npm run test:e2e`). Global setup seeds a
+PUBLISHED exam (`e2e-quiz-alpha-001`) with 1 MCQ question and 5 roster students;
+global teardown deletes all fixtures in FK-safe order.
+
+**Admin flow** (`tests/e2e/admin-flow.spec.ts`):
+1. `scenario 1: admin login` — navigates to /login, fills credentials, asserts redirect to /admin/dashboard
+2. `scenario 1: admin creates exam, publishes, closes (full lifecycle)` — creates DRAFT exam via /admin/exams/new, clicks Publish (exact match to avoid "Unpublish" false match), waits for Publish button to disappear then Close Exam to appear, clicks Close Exam, asserts Reopen button appears
+
+**Student flow** (`tests/e2e/student-flow.spec.ts`):
+3. `scenario 2: student starts exam, answers, submits, sees confirmation` — fills identity form via React native-value-setter + input event, answers MCQ via `button[aria-pressed]` inside `ul[aria-label="Answer options"]`, submits, asserts inline `h1 "Exam Submitted"` on the same URL
+4. `scenario 3: student reconnects after accidental closure — attempt resumes` — starts attempt, reloads page, asserts MCQ option buttons still visible (attempt resumes from sessionStorage token)
+5. `scenario 4: duplicate submit returns the same submission ID` — submits twice to `/api/exam/:slug/submit` with `{attemptId, sessionToken}`, asserts second call returns 200 with the same `submissionId`
+6. `scenario 5: second device within grace period gets 409 DEVICE_LOCKED` — first context holds active attempt; second context navigates to start URL then POSTs to `/api/exam/:slug/start` without a `resumeToken`, asserts 409 with `code: "DEVICE_LOCKED"`

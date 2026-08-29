@@ -49,6 +49,46 @@
             "url": "{{baseUrl}}/api/admin/auth/logout",
             "description": "Destroys the admin session cookie."
           }
+        },
+        {
+          "name": "Change password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/auth/change-password",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"{{admin_password}}\",\n  \"newPassword\": \"NewSecure@789\"\n}"
+            },
+            "description": "Changes the authenticated admin's own password. Requires valid session cookie. Verifies currentPassword against the stored hash before accepting newPassword. New password must differ from current and satisfy ChangePasswordSchema: ≥8 chars, upper, lower, digit, special char. Returns {success: true} on success."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Users (Phase 8)",
+      "description": "Super-admin user management. All write operations require a SUPER_ADMIN session cookie. The create/delete/toggle-active flows are implemented as Next.js server actions on the /admin/users UI page; there is no separate REST API for them.",
+      "item": [
+        {
+          "name": "List admins (page)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/users",
+            "description": "Returns the admin user list as an HTML page. Requires SUPER_ADMIN session cookie (redirects to /login otherwise). Server-renders all admin accounts with role, status, and delete controls."
+          }
+        },
+        {
+          "name": "Change password (self-service)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/profile",
+            "description": "Profile page where any authenticated admin can change their own password via the Change Password form. The form POSTs to /api/admin/auth/change-password."
+          }
         }
       ]
     },
