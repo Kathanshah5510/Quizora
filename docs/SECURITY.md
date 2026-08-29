@@ -12,6 +12,8 @@ Quizora is an exam platform used by students who may attempt to cheat. The front
 - Session TTL: 8 hours
 - No JWT stored in localStorage
 - Super Admin required to create other admins
+- Admins can change their own password (current password verified before update)
+- Super Admins can deactivate or delete admin accounts (with safety guards)
 
 ## Student identity
 
@@ -36,12 +38,55 @@ Quizora is an exam platform used by students who may attempt to cheat. The front
 
 - Admin routes: session checked server-side on every request
 - Exam routes: `sessionToken` validated on every answer save, heartbeat, submit
-- Rate limiting: to be implemented in Phase 8 (next.js middleware + Upstash Redis)
+- Rate limiting: in-process sliding-window (adapter-based; swap for Redis/Upstash at scale)
+  - Student exam start: 600/min per IP, 5/min per student per exam
+  - Answer save: 30/min per attempt
+  - Event logging: 20/min per attempt
+  - Navigation: 60/min per attempt
+  - Timer poll: 10/min per attempt
+  - Validate identity: 10/min per IP per exam
+  - **Admin login: 10/15 min per IP, 5/15 min per email** (brute-force protection)
 - CSRF: Server Actions use Next.js built-in CSRF protection; API routes use SameSite cookies
 - Input validation: Zod on all inputs at API boundaries
 - SQL injection: prevented by Prisma parameterized queries
-- XSS: React escapes output; Content-Security-Policy header to be added in Phase 8
+- XSS: React escapes output; Content-Security-Policy header implemented
 - Upload validation: MIME type + size checks on all file uploads
+
+## HTTP security headers
+
+All routes receive these headers (set in `next.config.ts`):
+
+| Header | Value | Purpose |
+|---|---|---|
+| Content-Security-Policy | See below | Restrict resource loading |
+| X-Content-Type-Options | nosniff | Prevent MIME sniffing |
+| X-Frame-Options | DENY | Block clickjacking |
+| Referrer-Policy | strict-origin-when-cross-origin | Limit referrer leakage |
+| Permissions-Policy | camera=(), microphone=(), geolocation=() | Deny sensor APIs |
+| X-XSS-Protection | 1; mode=block | Legacy XSS protection |
+
+### Content-Security-Policy
+
+```
+default-src 'self';
+script-src 'self' 'unsafe-inline';
+style-src 'self' 'unsafe-inline';
+font-src 'self';
+img-src 'self' data: blob:;
+connect-src 'self';
+media-src 'none';
+object-src 'none';
+base-uri 'self';
+form-action 'self';
+frame-ancestors 'none';
+upgrade-insecure-requests
+```
+
+**Why `'unsafe-inline'` for script-src:** Next.js App Router injects inline scripts
+for client-side hydration. Removing `'unsafe-inline'` requires per-request nonce
+infrastructure in Next.js middleware — a Phase 9 hardening opportunity.
+Despite this, the CSP meaningfully blocks all external script sources, cross-origin
+connections, plugins, base-tag injection, and form hijacking.
 
 ## Anti-cheating (browser-level)
 
@@ -71,6 +116,7 @@ These are deterrents only. They are not cryptographically enforced.
 - [ ] `DATABASE_URL` uses TLS (`?sslmode=require` on Neon)
 - [ ] `NEXT_PUBLIC_APP_URL` set to production domain
 - [ ] Cookie `Secure` flag active (enforced when `NODE_ENV=production`)
-- [ ] Rate limiting configured
-- [ ] CSP headers configured
+- [x] Rate limiting configured (in-process; swap to Redis/Upstash for multi-instance)
+- [x] CSP headers configured
 - [ ] Audit log review process in place
+- [ ] Default seed passwords changed on first login
