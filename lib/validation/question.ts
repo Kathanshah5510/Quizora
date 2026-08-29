@@ -25,7 +25,7 @@ const BaseQuestionFields = {
   options: z.array(QuestionOptionInputSchema).default([]),
   numericalAnswer: z.number().nullable().optional(),
   numericalTolerance: z.number().min(0, "Tolerance cannot be negative").nullable().optional(),
-  textAnswer: z.string().max(500).nullable().optional(),
+  textAnswer: z.string().max(2000).nullable().optional(),
   explanation: z.string().max(2000).nullable().optional(),
 };
 
@@ -117,7 +117,7 @@ export const UpdateQuestionSchema = z
     options: z.array(QuestionOptionInputSchema).optional(),
     numericalAnswer: z.number().nullable().optional(),
     numericalTolerance: z.number().min(0).nullable().optional(),
-    textAnswer: z.string().max(500).nullable().optional(),
+    textAnswer: z.string().max(2000).nullable().optional(),
     explanation: z.string().max(2000).nullable().optional(),
   })
   .refine((data) => Object.keys(data).length > 0, { message: "At least one field must be provided" });

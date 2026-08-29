@@ -54,6 +54,35 @@ function n(v: number): number {
   return v === 0 ? 0 : v;
 }
 
+/** Levenshtein edit distance between two strings. */
+function levenshtein(a: string, b: string): number {
+  const m = a.length, k = b.length;
+  const dp: number[] = Array.from({ length: k + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) {
+    let prev = dp[0];
+    dp[0] = i;
+    for (let j = 1; j <= k; j++) {
+      const temp = dp[j];
+      dp[j] = a[i - 1] === b[j - 1] ? prev : 1 + Math.min(prev, dp[j], dp[j - 1]);
+      prev = temp;
+    }
+  }
+  return dp[k];
+}
+
+/**
+ * Fuzzy-match student answer against one expected answer.
+ * Allows 1 edit per ~7 chars (15 %), capped at 3 — enough to catch
+ * plurals, single-letter typos, and swapped chars without confusing
+ * semantically distinct words (e.g. "supervised" ≠ "unsupervised").
+ */
+function fuzzyMatch(studentAns: string, expected: string): boolean {
+  if (studentAns === expected) return true;
+  const maxLen = Math.max(studentAns.length, expected.length);
+  const threshold = Math.min(3, Math.floor(maxLen * 0.15));
+  return threshold > 0 && levenshtein(studentAns, expected) <= threshold;
+}
+
 export function gradeQuestion(
   question: QuestionData,
   response: ResponseData | null,
@@ -131,9 +160,16 @@ export function gradeQuestion(
     }
     const ans = response?.textAnswer?.trim() ?? "";
     if (!ans) return skipped;
+    // textAnswer may contain multiple accepted values separated by "|"
+    const normalizedAns = ans.toLowerCase();
+    const acceptedAnswers = (question.textAnswer ?? "")
+      .split("|")
+      .map((a) => a.trim().toLowerCase())
+      .filter(Boolean);
+    // Exact match first, then fuzzy (catches typos / plurals like neurons→neuron)
     const isCorrect =
-      !!question.textAnswer &&
-      ans.toLowerCase() === question.textAnswer.trim().toLowerCase();
+      acceptedAnswers.length > 0 &&
+      acceptedAnswers.some((expected) => fuzzyMatch(normalizedAns, expected));
     return {
       earned: n(isCorrect ? marks : -negativeMarks),
       max: marks,

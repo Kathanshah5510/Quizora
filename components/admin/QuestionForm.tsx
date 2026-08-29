@@ -86,13 +86,19 @@ export default function QuestionForm({
   const [numericalTolerance, setNumericalTolerance] = useState(
     defaultValues?.numericalTolerance != null ? String(defaultValues.numericalTolerance) : ""
   );
-  const [textAnswer, setTextAnswer] = useState(defaultValues?.textAnswer ?? "");
+  const [textAnswers, setTextAnswers] = useState<string[]>(() => {
+    const raw = defaultValues?.textAnswer ?? "";
+    const parts = raw.split("|").map((s) => s.trim()).filter(Boolean);
+    return parts.length > 0 ? parts : [""];
+  });
+  const [newAnswer, setNewAnswer] = useState("");
   const [mediaAssetId, setMediaAssetId] = useState<string | null>(defaultValues?.mediaAsset?.id ?? null);
   const [serverError, setServerError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const optionRefs = useRef<(HTMLInputElement | null)[]>([]);
   const focusIdx = useRef<number | null>(null);
+  const savedOptionsRef = useRef<OptionState[] | null>(null);
 
   useEffect(() => {
     if (focusIdx.current !== null) {
@@ -102,8 +108,39 @@ export default function QuestionForm({
   });
 
   function handleTypeChange(newType: QuestionType) {
+    const prevType = type;
     setType(newType);
-    setOptions(buildDefaultOptions(newType));
+    setOptions((prev) => {
+      const prevIsEditable = OPTION_TYPES.includes(prevType) && prevType !== "TRUE_FALSE";
+      const newIsEditable = OPTION_TYPES.includes(newType) && newType !== "TRUE_FALSE";
+
+      if (prevIsEditable && newIsEditable) {
+        // MCQ ↔ MSQ ↔ IMAGE_BASED: preserve options.
+        // For single-answer types, keep only the first correct selection.
+        if (newType === "MCQ" || newType === "IMAGE_BASED") {
+          const firstCorrect = prev.findIndex((o) => o.isCorrect);
+          return prev.map((o, i) => ({ ...o, isCorrect: i === firstCorrect }));
+        }
+        return prev;
+      }
+
+      // Leaving editable-option type → snapshot the options so we can restore them.
+      if (prevIsEditable) {
+        savedOptionsRef.current = prev;
+      }
+
+      // Entering editable-option type → restore snapshot if one exists.
+      if (newIsEditable && savedOptionsRef.current && savedOptionsRef.current.length > 0) {
+        const restored = savedOptionsRef.current;
+        if (newType === "MCQ" || newType === "IMAGE_BASED") {
+          const firstCorrect = restored.findIndex((o) => o.isCorrect);
+          return restored.map((o, i) => ({ ...o, isCorrect: i === firstCorrect }));
+        }
+        return restored;
+      }
+
+      return buildDefaultOptions(newType);
+    });
     setServerError(null);
   }
 
@@ -178,7 +215,8 @@ export default function QuestionForm({
     }
 
     if (type === "SHORT_TEXT") {
-      payload.textAnswer = textAnswer.trim() || null;
+      const joined = textAnswers.map((a) => a.trim()).filter(Boolean).join("|");
+      payload.textAnswer = joined || null;
     }
 
     startTransition(async () => {
@@ -348,17 +386,68 @@ export default function QuestionForm({
           </div>
         )}
 
-        {/* Short text answer */}
+        {/* Short text answer — multiple accepted answers */}
         {type === "SHORT_TEXT" && (
-          <div>
-            <label className="block text-xs text-muted-foreground mb-1">Correct answer *</label>
-            <input
-              type="text"
-              value={textAnswer}
-              onChange={(e) => setTextAnswer(e.target.value)}
-              placeholder="Expected answer (case-insensitive)"
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            />
+          <div className="space-y-2">
+            <label className="block text-xs text-muted-foreground">
+              Accepted answers * <span className="opacity-60">(case-insensitive · student matches any one)</span>
+            </label>
+            {/* Existing answer chips */}
+            {textAnswers.filter(Boolean).length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {textAnswers.map((ans, i) =>
+                  ans.trim() ? (
+                    <span
+                      key={i}
+                      className="inline-flex items-center gap-1 rounded-full border border-green-400 bg-green-50 dark:bg-green-900/20 px-2.5 py-0.5 text-xs font-medium text-green-700 dark:text-green-300"
+                    >
+                      {ans.trim()}
+                      <button
+                        type="button"
+                        onClick={() => setTextAnswers((prev) => prev.filter((_, j) => j !== i))}
+                        className="ml-0.5 hover:text-red-500 transition-colors"
+                        title="Remove"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ) : null
+                )}
+              </div>
+            )}
+            {/* Add new answer */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newAnswer}
+                onChange={(e) => setNewAnswer(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    const val = newAnswer.trim();
+                    if (val && !textAnswers.map((a) => a.toLowerCase()).includes(val.toLowerCase())) {
+                      setTextAnswers((prev) => [...prev, val]);
+                    }
+                    setNewAnswer("");
+                  }
+                }}
+                placeholder="Type an accepted answer and press Enter"
+                className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const val = newAnswer.trim();
+                  if (val && !textAnswers.map((a) => a.toLowerCase()).includes(val.toLowerCase())) {
+                    setTextAnswers((prev) => [...prev, val]);
+                  }
+                  setNewAnswer("");
+                }}
+                className="rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+              >
+                + Add
+              </button>
+            </div>
           </div>
         )}
 

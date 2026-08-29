@@ -41,7 +41,7 @@ async function callGemini(prompt: string): Promise<{ text: string; model: string
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new AIGradingNotConfiguredError();
 
-  const model = process.env.GEMINI_MODEL ?? "gemini-2.0-flash-exp";
+  const model = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   const res = await fetch(url, {
