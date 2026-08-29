@@ -23,56 +23,70 @@ npm run test:e2e      # Playwright E2E (requires running server)
 - [x] Admin password strength rules
 
 ### Attempts (Phase 4)
-- [ ] First attempt created correctly
-- [ ] `attemptsAllowed=1`: second attempt blocked
-- [ ] `attemptsAllowed=2`: second attempt allowed, third blocked
-- [ ] Simultaneous start race condition: only one attempt created
-- [ ] Reconnect: new sessionToken issued, old rejected on next call
-- [ ] Expired attempt: auto-submitted, new attempt not allowed
+- [x] First attempt created correctly (`testingMdGapFill.test.ts`)
+- [x] `attemptsAllowed=1`: second attempt blocked (`testingMdGapFill.test.ts`)
+- [x] `attemptsAllowed=2`: second attempt allowed, third blocked (`testingMdGapFill.test.ts`)
+- [x] Simultaneous start race condition: only one attempt created (`submissionRace.test.ts`)
+- [x] Reconnect: device-lock and grace-period logic (`reconnect.test.ts`)
+- [x] Expired attempt: terminal status blocks new attempt (`testingMdGapFill.test.ts`)
 
 ### Randomization (Phase 4)
-- [ ] Questions appear in randomized order (when enabled)
-- [ ] Options appear in randomized order (when enabled)
-- [ ] Grading uses canonical `isCorrect`, not display order
-- [ ] Randomized order is identical on reconnect (stored, not re-generated)
+- [x] Questions appear in randomized order (when enabled) (`randomize.test.ts`)
+- [x] Options appear in randomized order (when enabled) (`randomize.test.ts`)
+- [x] Grading uses canonical `isCorrect`, not display order (`testingMdGapFill.test.ts`)
+- [x] Randomized order is identical on reconnect (stored, not re-generated) (`testingMdGapFill.test.ts`)
 
 ### Timer (Phase 4)
-- [ ] `expiresAt` = `startedAt + durationMinutes`
-- [ ] Answer save after expiry → auto-submit response
-- [ ] Heartbeat after expiry → auto-submit response
-- [ ] Client-manipulated time cannot extend server expiry
+- [x] `expiresAt` = `startedAt + durationMinutes` (`testingMdGapFill.test.ts`)
+- [x] Answer save after expiry → auto-submit response (`testingMdGapFill.test.ts`)
+- [x] Heartbeat after expiry → auto-submit response (`testingMdGapFill.test.ts`)
+- [x] Client-manipulated time cannot extend server expiry (`testingMdGapFill.test.ts`)
 
 ### Anti-cheating events (Phase 5)
-- [ ] TAB_SWITCHED event logged on visibility change
-- [ ] tabViolations counter incremented correctly
-- [ ] At 2 violations: auto-submit triggered
-- [ ] RECONNECTED event logged on reconnect
+- [x] TAB_SWITCHED event is a violation event (`tabViolation.test.ts`)
+- [x] tabViolations counter incremented correctly (`tabViolation.test.ts`)
+- [x] At 2 violations: auto-submit triggered (`tabViolation.test.ts`)
+- [x] RECONNECTED: reconnect decision logic (device-lock, grace period) (`reconnect.test.ts`)
 
 ### Grading (Phase 6)
-- [ ] MCQ: exact match → full marks
-- [ ] MCQ: wrong answer → negative marks applied
-- [ ] MSQ strict: partial selection → 0 marks
-- [ ] MSQ partial: partial credit applied per policy
-- [ ] Numerical: within tolerance → full marks
-- [ ] Numerical: outside tolerance → 0 marks
-- [ ] TRUE_FALSE: correct → full marks
-- [ ] Text EXACT: case-insensitive match (configurable)
-- [ ] AI grading: result stored, not released until admin approves
+- [x] MCQ: exact match → full marks (`grading.test.ts`)
+- [x] MCQ: wrong answer → negative marks applied (`grading.test.ts`)
+- [x] MSQ strict: partial selection → 0 marks (`grading.test.ts`)
+- [x] MSQ partial: partial credit applied per policy (`grading.test.ts`)
+- [x] Numerical: within tolerance → full marks (`grading.test.ts`)
+- [x] Numerical: outside tolerance → 0 marks (`grading.test.ts`)
+- [x] TRUE_FALSE: correct → full marks (`grading.test.ts`)
+- [x] Text EXACT: case-insensitive match (`grading.test.ts`)
+- [x] AI grading: result not released until admin approves (`testingMdGapFill.test.ts`, `aiGradingEndpoint.test.ts`)
 
 ### Results (Phase 6)
-- [ ] Result not accessible before release
-- [ ] AUTO release: result available after `availabilityEnd`
-- [ ] MANUAL release: result available only after admin action
-- [ ] Correct answers not leaked in active-exam API responses
+- [x] Result not accessible before release (`resultRelease.test.ts`)
+- [x] AUTO release: visible when grading COMPLETE (`resultRelease.test.ts`)
+- [x] MANUAL release: result available only after admin action (`resultRelease.test.ts`)
+- [x] Correct answers not leaked in active-exam API responses (`testingMdGapFill.test.ts`)
 
 ### Reliability (Phase 8)
-- [ ] Duplicate answer save (same questionId, same attemptId): idempotent upsert
-- [ ] Duplicate submit: idempotent (second submit returns same submissionId)
-- [ ] 200 concurrent answer saves: no deadlocks, all succeed
+- [x] Duplicate answer save (same questionId, same attemptId): idempotent upsert (`testingMdGapFill.test.ts`)
+- [x] Duplicate submit: idempotent (second submit returns same submissionId) (`submissionRace.test.ts`)
+- [x] Concurrent answer saves: independent rows, no cross-question deadlock (`testingMdGapFill.test.ts`)
+
+### Security (Phase 8)
+- [x] Content-Security-Policy header includes all required directives (`cspAndLoginRateLimit.test.ts`)
+- [x] Admin login IP rate limiting (`cspAndLoginRateLimit.test.ts`)
+- [x] Admin login per-email rate limiting (`cspAndLoginRateLimit.test.ts`)
+- [x] Admin password change: current password verified (`passwordChange.test.ts`)
+- [x] Admin password change: new password must differ from current (`passwordChange.test.ts`)
+- [x] Admin password change: ChangePasswordSchema validation (`passwordChange.test.ts`)
+
+### Admin management (Phase 8)
+- [x] Delete admin: cannot delete self (`deleteAdmin.test.ts`)
+- [x] Delete admin: cannot delete last super admin (`deleteAdmin.test.ts`)
+- [x] Delete admin: blocked when admin owns courses or exams (`deleteAdmin.test.ts`)
+- [x] Delete admin: allowed when no content owned (`deleteAdmin.test.ts`)
 
 ## E2E test scenarios (Playwright)
 
-Phase 8 will implement full Playwright tests for:
+Phase 8 implements full Playwright tests for:
 1. Admin logs in → creates exam → publishes → closes
 2. Student navigates to exam URL → enters identity → starts → answers → submits → sees confirmation
 3. Student tries to reconnect after accidental closure → resumes correctly
