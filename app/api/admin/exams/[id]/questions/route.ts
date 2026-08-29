@@ -12,7 +12,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   if (!exam) return NextResponse.json({ error: "Exam not found" }, { status: 404 });
 
   const questions = await db.question.findMany({
-    where: { examId },
+    where: { examId, isDeleted: false },
     orderBy: { displayOrder: "asc" },
     include: {
       options: { orderBy: { displayOrder: "asc" } },

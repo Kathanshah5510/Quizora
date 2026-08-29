@@ -5,7 +5,8 @@ import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import CourseForm from "@/components/admin/CourseForm";
 import CourseToggleButton from "./CourseToggleButton";
-import { updateCourseAction } from "../actions";
+import { updateCourseAction, deleteCourseAction } from "../actions";
+import DeleteButton from "@/components/admin/DeleteButton";
 import { formatDate } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Course" };
@@ -138,6 +139,19 @@ export default async function CourseDetailPage({
             </tbody>
           </table>
         )}
+      </div>
+
+      {/* Danger zone */}
+      <div className="rounded-xl border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/10 px-6 py-5">
+        <h3 className="text-sm font-semibold text-red-700 dark:text-red-400 mb-1">Danger Zone</h3>
+        <p className="text-xs text-red-600/80 dark:text-red-400/70 mb-4">
+          Deleting this course hides it from all lists. Existing exams and their data are not affected.
+        </p>
+        <DeleteButton
+          onDelete={deleteCourseAction.bind(null, course.id)}
+          confirmMessage={`Delete "${course.name}"? This hides the course from all lists. Existing exams are not affected.`}
+          label="Delete Course"
+        />
       </div>
     </div>
   );

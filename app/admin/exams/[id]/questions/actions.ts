@@ -63,7 +63,7 @@ export async function createQuestionAction(
   });
 
   revalidatePath(`/admin/exams/${examId}/questions`);
-  redirect(`/admin/exams/${examId}/questions/${question.id}`);
+  redirect(`/admin/exams/${examId}/questions`);
 }
 
 export async function updateQuestionAction(
@@ -75,7 +75,7 @@ export async function updateQuestionAction(
   if (!user) return { error: "Unauthorized", success: false };
 
   const existing = await db.question.findFirst({
-    where: { id: questionId, examId },
+    where: { id: questionId, examId, isDeleted: false },
     include: { _count: { select: { responses: true } } },
   });
   if (!existing) return { error: "Question not found", success: false };
@@ -132,7 +132,7 @@ export async function deleteQuestionAction(
   if (!user) return { error: "Unauthorized", success: false };
 
   const question = await db.question.findFirst({
-    where: { id: questionId, examId },
+    where: { id: questionId, examId, isDeleted: false },
     include: { _count: { select: { responses: true } } },
   });
   if (!question) return { error: "Question not found", success: false };
@@ -140,7 +140,7 @@ export async function deleteQuestionAction(
     return { error: "Cannot delete a question that has student responses", success: false };
   }
 
-  await db.question.delete({ where: { id: questionId } });
+  await db.question.update({ where: { id: questionId }, data: { isDeleted: true } });
   revalidatePath(`/admin/exams/${examId}/questions`);
   redirect(`/admin/exams/${examId}/questions`);
 }

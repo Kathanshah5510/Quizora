@@ -87,6 +87,18 @@ export async function updateCourseAction(
   return { error: "", success: true };
 }
 
+export async function deleteCourseAction(courseId: string): Promise<{ error?: string; success?: boolean }> {
+  const user = await requireAdmin();
+  if (!user) return { error: "Unauthorized" };
+
+  const course = await db.course.findUnique({ where: { id: courseId } });
+  if (!course || course.isDeleted) return { error: "Course not found" };
+
+  await db.course.update({ where: { id: courseId }, data: { isDeleted: true } });
+  revalidatePath("/admin/courses");
+  redirect("/admin/courses");
+}
+
 export async function toggleCourseActiveAction(courseId: string, isActive: boolean) {
   const user = await requireAdmin();
   if (!user) return { error: "Unauthorized" };

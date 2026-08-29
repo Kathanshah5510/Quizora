@@ -86,10 +86,11 @@ export async function POST(
       allowBacktracking: true,
       reconnectGraceSeconds: true,
       maxTabViolations: true,
+      isDeleted: true,
     },
   });
 
-  if (!exam) {
+  if (!exam || exam.isDeleted) {
     return NextResponse.json({ error: "Exam not found" }, { status: 404 });
   }
 
@@ -218,7 +219,7 @@ export async function POST(
 
   // Load questions for randomization (never send correct answers)
   const questions = await db.question.findMany({
-    where: { examId: exam.id },
+    where: { examId: exam.id, isDeleted: false },
     select: {
       id: true,
       displayOrder: true,

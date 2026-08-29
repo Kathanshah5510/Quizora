@@ -16,7 +16,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     },
   });
 
-  if (!exam) return NextResponse.json({ error: "Exam not found" }, { status: 404 });
+  if (!exam || exam.isDeleted) return NextResponse.json({ error: "Exam not found" }, { status: 404 });
   return NextResponse.json({ exam });
 }
 
@@ -34,7 +34,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   const exam = await db.exam.findUnique({ where: { id } });
-  if (!exam) return NextResponse.json({ error: "Exam not found" }, { status: 404 });
+  if (!exam || exam.isDeleted) return NextResponse.json({ error: "Exam not found" }, { status: 404 });
 
   if (parsed.data.slug && parsed.data.slug !== exam.slug) {
     const existing = await db.exam.findUnique({ where: { slug: parsed.data.slug } });
@@ -84,19 +84,10 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const exam = await db.exam.findUnique({
-    where: { id },
-    include: { _count: { select: { attempts: true } } },
-  });
+  const exam = await db.exam.findUnique({ where: { id } });
 
-  if (!exam) return NextResponse.json({ error: "Exam not found" }, { status: 404 });
-  if (exam._count.attempts > 0) {
-    return NextResponse.json(
-      { error: "Cannot delete an exam that has student attempts." },
-      { status: 409 }
-    );
-  }
+  if (!exam || exam.isDeleted) return NextResponse.json({ error: "Exam not found" }, { status: 404 });
 
-  await db.exam.delete({ where: { id } });
+  await db.exam.update({ where: { id }, data: { isDeleted: true } });
   return NextResponse.json({ success: true });
 }

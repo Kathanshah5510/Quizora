@@ -67,6 +67,18 @@ export async function createExamAction(
 
 type LifecycleResult = { error?: string; success?: boolean };
 
+export async function deleteExamAction(examId: string): Promise<LifecycleResult> {
+  const user = await requireAdmin();
+  if (!user) return { error: "Unauthorized" };
+
+  const exam = await db.exam.findUnique({ where: { id: examId } });
+  if (!exam || exam.isDeleted) return { error: "Exam not found" };
+
+  await db.exam.update({ where: { id: examId }, data: { isDeleted: true } });
+  revalidatePath("/admin/exams");
+  redirect("/admin/exams");
+}
+
 export async function publishExamAction(examId: string): Promise<LifecycleResult> {
   const user = await requireAdmin();
   if (!user) return { error: "Unauthorized" };

@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatDate } from "@/lib/utils";
+import DeleteButton from "@/components/admin/DeleteButton";
+import { deleteExamAction } from "./actions";
 
 export const metadata: Metadata = { title: "Exams" };
 
@@ -19,6 +21,7 @@ export default async function ExamsPage() {
   if (!user) redirect("/login");
 
   const exams = await db.exam.findMany({
+    where: { isDeleted: false },
     orderBy: { createdAt: "desc" },
     include: {
       course: { select: { id: true, name: true, code: true } },
@@ -93,9 +96,17 @@ export default async function ExamsPage() {
                         {formatDate(exam.createdAt)}
                       </td>
                       <td className="px-4 py-3">
-                        <Link href={`/admin/exams/${exam.id}`} className="text-xs text-primary hover:underline">
-                          Open
-                        </Link>
+                        <div className="flex items-center gap-3">
+                          <Link href={`/admin/exams/${exam.id}`} className="text-xs text-primary hover:underline">
+                            Open
+                          </Link>
+                          <DeleteButton
+                            onDelete={deleteExamAction.bind(null, exam.id)}
+                            confirmMessage={`Delete "${exam.title}"? This will hide it from all lists. The data is preserved.`}
+                            label="Delete"
+                            variant="ghost"
+                          />
+                        </div>
                       </td>
                     </tr>
                   );

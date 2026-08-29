@@ -8,6 +8,7 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const courses = await db.course.findMany({
+    where: { isDeleted: false },
     orderBy: { createdAt: "desc" },
     include: {
       _count: { select: { exams: true } },

@@ -34,7 +34,7 @@ export default async function EditQuestionPage({
       select: { id: true, title: true, status: true },
     }),
     db.question.findFirst({
-      where: { id: questionId, examId },
+      where: { id: questionId, examId, isDeleted: false },
       include: {
         options: { orderBy: { displayOrder: "asc" } },
         _count: { select: { responses: true } },
@@ -56,6 +56,14 @@ export default async function EditQuestionPage({
     <div className="max-w-2xl space-y-6">
       {/* Breadcrumb */}
       <div>
+        <div className="flex items-center gap-2 mb-3">
+          <Link
+            href={`/admin/exams/${examId}/questions`}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+          >
+            ← Back to Questions
+          </Link>
+        </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
           <Link href="/admin/exams" className="hover:text-foreground transition-colors">Exams</Link>
           <span>/</span>

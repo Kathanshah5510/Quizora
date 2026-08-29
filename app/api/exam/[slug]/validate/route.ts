@@ -65,10 +65,11 @@ export async function POST(
       continueAfterAvailability: true,
       allowExternalStudents: true,
       attemptsAllowed: true,
+      isDeleted: true,
     },
   });
 
-  if (!exam) {
+  if (!exam || exam.isDeleted) {
     return NextResponse.json({ error: "Exam not found" }, { status: 404 });
   }
 

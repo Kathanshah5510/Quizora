@@ -21,6 +21,7 @@ const EXAM_SELECT = {
   allowExternalStudents: true,
   fullScreenRequired: true,
   continueAfterAvailability: true,
+  isDeleted: true,
   course: { select: { name: true, code: true } },
   _count: { select: { questions: true } },
 } as const;
@@ -36,7 +37,7 @@ export async function GET(
     select: EXAM_SELECT,
   });
 
-  if (!exam) {
+  if (!exam || exam.isDeleted) {
     return NextResponse.json({ error: "Exam not found" }, { status: 404 });
   }
 

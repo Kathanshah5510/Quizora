@@ -50,7 +50,7 @@ export default async function QuestionsPage({
   if (!exam) redirect("/admin/exams");
 
   const questions = await db.question.findMany({
-    where: { examId },
+    where: { examId, isDeleted: false },
     orderBy: { displayOrder: "asc" },
     include: {
       options: {
@@ -76,6 +76,14 @@ export default async function QuestionsPage({
     <div className="max-w-3xl space-y-6">
       {/* Header */}
       <div>
+        <div className="flex items-center gap-2 mb-3">
+          <Link
+            href={`/admin/exams/${examId}`}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+          >
+            ← Back to Exam
+          </Link>
+        </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Link href="/admin/exams" className="hover:text-foreground transition-colors">Exams</Link>
           <span>/</span>

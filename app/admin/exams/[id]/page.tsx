@@ -6,7 +6,8 @@ import { db } from "@/lib/db";
 import ExamForm from "@/components/admin/ExamForm";
 import ExamLifecycle from "./ExamLifecycle";
 import CopySlugButton from "./CopySlugButton";
-import { updateExamAction } from "../actions";
+import { updateExamAction, deleteExamAction } from "../actions";
+import DeleteButton from "@/components/admin/DeleteButton";
 
 export const metadata: Metadata = { title: "Exam Settings" };
 
@@ -37,7 +38,7 @@ export default async function ExamDetailPage({
   if (!exam) notFound();
 
   const courses = await db.course.findMany({
-    where: { isActive: true },
+    where: { isActive: true, isDeleted: false },
     orderBy: { code: "asc" },
     select: { id: true, name: true, code: true },
   });
@@ -53,9 +54,9 @@ export default async function ExamDetailPage({
         <div className="min-w-0">
           <Link
             href="/admin/exams"
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
           >
-            ← Exams
+            ← Back to Exams
           </Link>
           <div className="flex flex-wrap items-center gap-3 mt-2">
             <h1 className="text-xl font-bold text-foreground leading-snug">{exam.title}</h1>
@@ -224,6 +225,19 @@ export default async function ExamDetailPage({
             View Results →
           </Link>
         </div>
+      </div>
+
+      {/* Danger zone */}
+      <div className="rounded-xl border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/10 px-6 py-5">
+        <h3 className="text-sm font-semibold text-red-700 dark:text-red-400 mb-1">Danger Zone</h3>
+        <p className="text-xs text-red-600/80 dark:text-red-400/70 mb-4">
+          Deleting this exam hides it from all lists. Existing attempt and result data is preserved in the database.
+        </p>
+        <DeleteButton
+          onDelete={deleteExamAction.bind(null, exam.id)}
+          confirmMessage={`Delete "${exam.title}"? This hides the exam from all lists. Attempt and result data is preserved.`}
+          label="Delete Exam"
+        />
       </div>
     </div>
   );

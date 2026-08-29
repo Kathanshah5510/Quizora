@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatDate, truncate } from "@/lib/utils";
+import DeleteButton from "@/components/admin/DeleteButton";
+import { deleteCourseAction } from "./actions";
 
 export const metadata: Metadata = { title: "Courses" };
 
@@ -12,6 +14,7 @@ export default async function CoursesPage() {
   if (!user) redirect("/login");
 
   const courses = await db.course.findMany({
+    where: { isDeleted: false },
     orderBy: { createdAt: "desc" },
     include: {
       _count: { select: { exams: true } },
@@ -92,12 +95,20 @@ export default async function CoursesPage() {
                     {formatDate(course.createdAt)}
                   </td>
                   <td className="px-4 py-3">
-                    <Link
-                      href={`/admin/courses/${course.id}`}
-                      className="text-xs text-primary hover:underline"
-                    >
-                      Edit
-                    </Link>
+                    <div className="flex items-center gap-3">
+                      <Link
+                        href={`/admin/courses/${course.id}`}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        Edit
+                      </Link>
+                      <DeleteButton
+                        onDelete={deleteCourseAction.bind(null, course.id)}
+                        confirmMessage={`Delete "${course.name}"? This hides the course from all lists. Associated exams are not affected.`}
+                        label="Delete"
+                        variant="ghost"
+                      />
+                    </div>
                   </td>
                 </tr>
               ))}

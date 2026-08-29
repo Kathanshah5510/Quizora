@@ -217,6 +217,7 @@ function ExamSessionInner() {
   const [payload, setPayload] = useState<QuestionPayload | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [remainingSeconds, setRemainingSeconds] = useState<number>(0);
+  const [timerReady, setTimerReady] = useState(false);
   const [totalQuestions, setTotalQuestions] = useState(0);
   const [allowBacktracking, setAllowBacktracking] = useState(true);
   const [fullScreenRequired, setFullScreenRequired] = useState(false);
@@ -281,6 +282,7 @@ function ExamSessionInner() {
 
         setPayload(data);
         setRemainingSeconds(data.remainingSeconds);
+        setTimerReady(true);
         setTotalQuestions(data.totalQuestions);
         setAllowBacktracking(data.allowBacktracking);
         setCurrentIndex(index);
@@ -296,9 +298,9 @@ function ExamSessionInner() {
     loadQuestion(0);
   }, [loadQuestion]);
 
-  // Countdown timer (client-side display only; server is authoritative)
+  // Countdown timer — only starts after the first question has loaded (timerReady=true)
   useEffect(() => {
-    if (submitted) return;
+    if (submitted || !timerReady) return;
     timerRef.current = setInterval(() => {
       setRemainingSeconds((prev) => {
         if (prev <= 1) {
@@ -310,7 +312,7 @@ function ExamSessionInner() {
       });
     }, 1000);
     return () => clearInterval(timerRef.current!);
-  }, [submitted]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [submitted, timerReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync timer from server every 30 seconds — token via header
   useEffect(() => {
@@ -502,22 +504,35 @@ function ExamSessionInner() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      {/* Tab violation overlay warning */}
+      {violationWarning && tabViolations > 0 && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+        >
+          <div className="mx-4 max-w-sm w-full rounded-xl border-2 border-destructive bg-card px-6 py-8 text-center shadow-2xl">
+            <div className="text-4xl mb-3">⚠️</div>
+            <h2 className="text-lg font-bold text-destructive mb-2">Tab Switch Detected!</h2>
+            <p className="text-sm text-foreground mb-1">
+              You have left the exam window <strong>{tabViolations}</strong> time{tabViolations !== 1 ? "s" : ""}.
+            </p>
+            <p className="text-sm text-destructive font-medium">
+              {tabViolations >= maxTabViolations
+                ? "Your exam will be auto-submitted."
+                : `Your exam will auto-submit after ${maxTabViolations} violations.`}
+            </p>
+            <p className="text-xs text-muted-foreground mt-3">This warning closes automatically.</p>
+          </div>
+        </div>
+      )}
+
       {/* Top bar */}
       <header className="sticky top-0 z-20 border-b bg-card shadow-sm">
         <div className="max-w-3xl mx-auto px-4 py-2 flex items-center justify-between gap-4">
           <span className="text-sm font-medium">
             Q{currentIndex + 1}/{totalQuestions}
           </span>
-
-          {/* Tab violation warning */}
-          {violationWarning && tabViolations > 0 && (
-            <span
-              role="alert"
-              className="text-xs font-medium text-destructive"
-            >
-              ⚠️ Tab switch detected ({tabViolations}/{maxTabViolations}). Exam will auto-submit on next violation.
-            </span>
-          )}
 
           {/* Timer */}
           <div
