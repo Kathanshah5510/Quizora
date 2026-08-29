@@ -50,3 +50,35 @@ export async function toggleAdminActiveAction(userId: string, isActive: boolean)
   revalidatePath("/admin/users");
   return { success: true };
 }
+
+export async function deleteAdminAction(userId: string) {
+  const caller = await requireSuperAdmin();
+  if (!caller) return { error: "Unauthorized" };
+
+  if (userId === caller.id) return { error: "You cannot delete your own account" };
+
+  const target = await db.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      role: true,
+      _count: { select: { courses: true, exams: true } },
+    },
+  });
+  if (!target) return { error: "Admin not found" };
+
+  if (target.role === "SUPER_ADMIN") {
+    const superAdminCount = await db.user.count({ where: { role: "SUPER_ADMIN" } });
+    if (superAdminCount <= 1) return { error: "Cannot delete the last super admin" };
+  }
+
+  if (target._count.courses > 0 || target._count.exams > 0) {
+    return {
+      error: `This admin owns ${target._count.courses} course(s) and ${target._count.exams} exam(s). Deactivate them instead.`,
+    };
+  }
+
+  await db.user.delete({ where: { id: userId } });
+  revalidatePath("/admin/users");
+  return { success: true };
+}

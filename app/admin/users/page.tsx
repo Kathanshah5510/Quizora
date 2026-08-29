@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { requireSuperAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import CreateAdminForm from "./CreateAdminForm";
+import DeleteAdminButton from "./DeleteAdminButton";
 
 export const metadata: Metadata = { title: "Admins" };
 
@@ -33,6 +34,7 @@ export default async function UsersPage() {
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Email</th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Role</th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
+              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -61,6 +63,13 @@ export default async function UsersPage() {
                   >
                     {admin.isActive ? "Active" : "Inactive"}
                   </span>
+                </td>
+                <td className="px-4 py-3">
+                  <DeleteAdminButton
+                    userId={admin.id}
+                    adminName={admin.name}
+                    isSelf={admin.id === caller.id}
+                  />
                 </td>
               </tr>
             ))}
