@@ -169,13 +169,12 @@ export default function QuestionReorderList({
                 <th className="px-3 py-3" />
               </tr>
             </thead>
-            <tbody>
-              {questions.map((q, idx) => {
-                if (!filteredIds.has(q.id)) return null;
-                const isExpanded = expandedId === q.id;
-                return (
-                  <tbody key={q.id}>
-                    <tr
+            {questions.map((q, idx) => {
+              if (!filteredIds.has(q.id)) return null;
+              const isExpanded = expandedId === q.id;
+              return (
+                <tbody key={q.id}>
+                  <tr
                       draggable={canEdit && !search && !typeFilter}
                       onDragStart={() => handleDragStart(q.id)}
                       onDragOver={(e) => handleDragOver(e, q.id)}
@@ -237,17 +236,16 @@ export default function QuestionReorderList({
                         </div>
                       </td>
                     </tr>
-                    {isExpanded && (
-                      <tr className="border-t border-border">
-                        <td colSpan={canEdit ? 6 : 5} className="px-4 py-4 bg-muted/10">
-                          <QuestionPreview question={q} />
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                );
-              })}
-            </tbody>
+                  {isExpanded && (
+                    <tr className="border-t border-border">
+                      <td colSpan={canEdit ? 6 : 5} className="px-4 py-4 bg-muted/10">
+                        <QuestionPreview question={q} />
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              );
+            })}
           </table>
         )}
       </div>

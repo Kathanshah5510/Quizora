@@ -21,6 +21,7 @@ export default function QuestionImport({ examId }: Props) {
   const [questions, setQuestions] = useState<ExtractedQuestion[]>([]);
   const [importedCount, setImportedCount] = useState(0);
   const [fileName, setFileName] = useState("");
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
 
   const handleExtract = useCallback(async () => {
     const file = fileRef.current?.files?.[0];
@@ -109,7 +110,7 @@ export default function QuestionImport({ examId }: Props) {
             View Questions →
           </a>
           <button
-            onClick={() => { setStep("upload"); setQuestions([]); if (fileRef.current) fileRef.current.value = ""; }}
+            onClick={() => { setStep("upload"); setQuestions([]); setSelectedFileName(null); if (fileRef.current) fileRef.current.value = ""; }}
             className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
           >
             Import Another
@@ -303,6 +304,11 @@ export default function QuestionImport({ examId }: Props) {
           accept=".csv,.tsv,.txt,text/csv,text/plain,text/tab-separated-values"
           className="hidden"
           id="csv-file-input"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            setSelectedFileName(f ? f.name : null);
+            setError(null);
+          }}
         />
         <label
           htmlFor="csv-file-input"
@@ -310,6 +316,22 @@ export default function QuestionImport({ examId }: Props) {
         >
           Choose file
         </label>
+        {selectedFileName && (
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground max-w-full">
+            <svg className="w-4 h-4 shrink-0 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span className="truncate font-mono">{selectedFileName}</span>
+            <button
+              type="button"
+              onClick={() => { setSelectedFileName(null); if (fileRef.current) fileRef.current.value = ""; }}
+              className="shrink-0 text-muted-foreground hover:text-red-500 transition-colors ml-auto"
+              title="Clear"
+            >
+              ×
+            </button>
+          </div>
+        )}
       </div>
 
       {error && (

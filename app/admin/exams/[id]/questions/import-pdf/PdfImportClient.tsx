@@ -20,6 +20,7 @@ export default function PdfImportClient({ examId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [questions, setQuestions] = useState<ExtractedQuestion[]>([]);
   const [importedCount, setImportedCount] = useState(0);
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
 
   const handleExtract = useCallback(async () => {
     const file = fileRef.current?.files?.[0];
@@ -126,7 +127,7 @@ export default function PdfImportClient({ examId }: Props) {
             View Questions →
           </a>
           <button
-            onClick={() => { setStep("upload"); setQuestions([]); if (fileRef.current) fileRef.current.value = ""; }}
+            onClick={() => { setStep("upload"); setQuestions([]); setSelectedFileName(null); if (fileRef.current) fileRef.current.value = ""; }}
             className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
           >
             Import Another
@@ -340,6 +341,11 @@ export default function PdfImportClient({ examId }: Props) {
           accept=".pdf,application/pdf"
           className="hidden"
           id="pdf-file-input"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            setSelectedFileName(f ? f.name : null);
+            setError(null);
+          }}
         />
         <label
           htmlFor="pdf-file-input"
@@ -347,6 +353,22 @@ export default function PdfImportClient({ examId }: Props) {
         >
           Choose PDF file
         </label>
+        {selectedFileName && (
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground max-w-full">
+            <svg className="w-4 h-4 shrink-0 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            <span className="truncate font-mono">{selectedFileName}</span>
+            <button
+              type="button"
+              onClick={() => { setSelectedFileName(null); if (fileRef.current) fileRef.current.value = ""; }}
+              className="shrink-0 text-muted-foreground hover:text-red-500 transition-colors ml-auto"
+              title="Clear"
+            >
+              ×
+            </button>
+          </div>
+        )}
       </div>
 
       {error && (
