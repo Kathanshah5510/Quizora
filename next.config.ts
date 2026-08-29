@@ -17,9 +17,13 @@ import type { NextConfig } from "next";
 // To remove 'unsafe-inline' from script-src: implement a nonce-based
 // middleware that sets a per-request nonce and passes it to Next.js
 // headers — see https://nextjs.org/docs/app/building-your-application/configuring/content-security-policy
+// Next.js dev server uses eval() for HMR source maps; unsafe-eval must be
+// included in development to allow React hydration and hot reload to work.
+const isDev = process.env.NODE_ENV === "development";
+
 const ContentSecurityPolicy = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self'",
   "img-src 'self' data: blob:",
