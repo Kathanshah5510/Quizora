@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef, useEffect } from "react";
 import MediaUploader from "./MediaUploader";
 
 export type QuestionType = "MCQ" | "MSQ" | "TRUE_FALSE" | "SHORT_TEXT" | "NUMERICAL" | "IMAGE_BASED";
@@ -32,14 +32,14 @@ interface QuestionFormProps {
   submitLabel?: string;
 }
 
-const TYPE_LABELS: Record<QuestionType, string> = {
-  MCQ: "Single Correct (MCQ)",
-  MSQ: "Multiple Correct (MSQ)",
-  TRUE_FALSE: "True / False",
-  SHORT_TEXT: "Short Text",
-  NUMERICAL: "Numerical",
-  IMAGE_BASED: "Image-Based",
-};
+const TYPE_OPTIONS: { value: QuestionType; label: string }[] = [
+  { value: "MCQ", label: "Single Correct" },
+  { value: "MSQ", label: "Multiple Correct" },
+  { value: "TRUE_FALSE", label: "True / False" },
+  { value: "NUMERICAL", label: "Numerical" },
+  { value: "SHORT_TEXT", label: "Short Text" },
+  { value: "IMAGE_BASED", label: "Image-Based" },
+];
 
 const OPTION_TYPES: QuestionType[] = ["MCQ", "MSQ", "TRUE_FALSE", "IMAGE_BASED"];
 
@@ -60,92 +60,8 @@ function buildDefaultOptions(type: QuestionType, existing?: OptionState[]): Opti
   return [];
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-function Label({ htmlFor, children }: { htmlFor?: string; children: React.ReactNode }) {
-  return (
-    <label htmlFor={htmlFor} className="block text-sm font-medium text-foreground mb-1.5">
-      {children}
-    </label>
-  );
-}
-
-function FieldError({ msg }: { msg?: string }) {
-  if (!msg) return null;
-  return <p className="mt-1.5 text-xs text-red-500 dark:text-red-400">{msg}</p>;
-}
-
-function FormSection({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-      <h3 className="text-sm font-semibold text-card-foreground">{title}</h3>
-      {children}
-    </div>
-  );
-}
-
-function Input({
-  id,
-  type = "text",
-  value,
-  onChange,
-  placeholder,
-  step,
-  min,
-  className = "",
-}: {
-  id?: string;
-  type?: string;
-  value: string | number;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  step?: string;
-  min?: string;
-  className?: string;
-}) {
-  return (
-    <input
-      id={id}
-      type={type}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      step={step}
-      min={min}
-      className={`w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring ${className}`}
-    />
-  );
-}
-
-function Textarea({
-  id,
-  value,
-  onChange,
-  placeholder,
-  rows = 3,
-}: {
-  id?: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  rows?: number;
-}) {
-  return (
-    <textarea
-      id={id}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      rows={rows}
-      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-y"
-    />
-  );
-}
-
-// ─── Main QuestionForm ────────────────────────────────────────────────────────
-
 export default function QuestionForm({
-  examId,
+  examId: _examId,
   defaultValues,
   isEdit = false,
   onSubmit,
@@ -158,6 +74,7 @@ export default function QuestionForm({
   const [marks, setMarks] = useState(String(defaultValues?.marks ?? 1));
   const [negativeMarks, setNegativeMarks] = useState(String(defaultValues?.negativeMarks ?? 0));
   const [explanation, setExplanation] = useState(defaultValues?.explanation ?? "");
+  const [showExplanation, setShowExplanation] = useState(!!defaultValues?.explanation);
 
   const [options, setOptions] = useState<OptionState[]>(() =>
     buildDefaultOptions(type, defaultValues?.options)
@@ -169,13 +86,20 @@ export default function QuestionForm({
   const [numericalTolerance, setNumericalTolerance] = useState(
     defaultValues?.numericalTolerance != null ? String(defaultValues.numericalTolerance) : ""
   );
-
   const [textAnswer, setTextAnswer] = useState(defaultValues?.textAnswer ?? "");
-  const [mediaAssetId, setMediaAssetId] = useState<string | null>(
-    defaultValues?.mediaAsset?.id ?? null
-  );
+  const [mediaAssetId, setMediaAssetId] = useState<string | null>(defaultValues?.mediaAsset?.id ?? null);
   const [serverError, setServerError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  const optionRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const focusIdx = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (focusIdx.current !== null) {
+      optionRefs.current[focusIdx.current]?.focus();
+      focusIdx.current = null;
+    }
+  });
 
   function handleTypeChange(newType: QuestionType) {
     setType(newType);
@@ -183,39 +107,46 @@ export default function QuestionForm({
     setServerError(null);
   }
 
-  // ─── Options management ───────────────────────────────────────────────────
-
   function addOption() {
-    setOptions((prev) => [
-      ...prev,
-      { text: "", isCorrect: false, displayOrder: prev.length },
-    ]);
+    setOptions((prev) => {
+      focusIdx.current = prev.length;
+      return [...prev, { text: "", isCorrect: false, displayOrder: prev.length }];
+    });
   }
 
   function removeOption(idx: number) {
     setOptions((prev) =>
-      prev
-        .filter((_, i) => i !== idx)
-        .map((o, i) => ({ ...o, displayOrder: i }))
+      prev.filter((_, i) => i !== idx).map((o, i) => ({ ...o, displayOrder: i }))
     );
+    setTimeout(() => optionRefs.current[Math.max(0, idx - 1)]?.focus(), 0);
   }
 
-  function updateOptionText(idx: number, text: string) {
-    setOptions((prev) => prev.map((o, i) => (i === idx ? { ...o, text } : o)));
+  function updateOptionText(idx: number, val: string) {
+    setOptions((prev) => prev.map((o, i) => (i === idx ? { ...o, text: val } : o)));
   }
 
   function toggleCorrect(idx: number) {
     setOptions((prev) => {
       if (type === "MCQ" || type === "TRUE_FALSE" || type === "IMAGE_BASED") {
-        // Single-correct: clear all then set this one
         return prev.map((o, i) => ({ ...o, isCorrect: i === idx }));
       }
-      // MSQ: toggle
       return prev.map((o, i) => (i === idx ? { ...o, isCorrect: !o.isCorrect } : o));
     });
   }
 
-  // ─── Submit ───────────────────────────────────────────────────────────────
+  function handleOptionKeyDown(e: React.KeyboardEvent, idx: number) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (idx === options.length - 1 && options.length < 10) {
+        addOption();
+      } else {
+        optionRefs.current[idx + 1]?.focus();
+      }
+    } else if (e.key === "Backspace" && options[idx]?.text === "" && options.length > 2) {
+      e.preventDefault();
+      removeOption(idx);
+    }
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -243,8 +174,7 @@ export default function QuestionForm({
 
     if (type === "NUMERICAL") {
       payload.numericalAnswer = numericalAnswer !== "" ? parseFloat(numericalAnswer) : null;
-      payload.numericalTolerance =
-        numericalTolerance !== "" ? parseFloat(numericalTolerance) : null;
+      payload.numericalTolerance = numericalTolerance !== "" ? parseFloat(numericalTolerance) : null;
     }
 
     if (type === "SHORT_TEXT") {
@@ -255,8 +185,6 @@ export default function QuestionForm({
       const result = await onSubmit(payload);
       if (result && !result.success && result.error) {
         setServerError(result.error);
-      } else if (result?.success && !isEdit) {
-        // redirect happens server-side on create; for edit show success
       } else if (result?.success) {
         setSuccessMsg("Question saved.");
       }
@@ -265,225 +193,220 @@ export default function QuestionForm({
 
   const showOptions = OPTION_TYPES.includes(type);
   const isTrueFalse = type === "TRUE_FALSE";
+  const isMSQ = type === "MSQ";
   const correctCount = options.filter((o) => o.isCorrect).length;
-
   const label = submitLabel ?? (isEdit ? "Save Question" : "Add Question");
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      {/* Question type */}
-      <FormSection title="Question Type">
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {(Object.keys(TYPE_LABELS) as QuestionType[]).map((t) => (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Main card */}
+      <div className="rounded-xl border border-border bg-card p-5 space-y-5">
+
+        {/* Type selector — pill row */}
+        <div className="flex flex-wrap gap-1.5">
+          {TYPE_OPTIONS.map(({ value, label: tLabel }) => (
             <button
-              key={t}
+              key={value}
               type="button"
-              onClick={() => handleTypeChange(t)}
-              className={`rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-colors ${
-                type === t
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-border text-foreground hover:bg-muted"
+              onClick={() => handleTypeChange(value)}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                type === value
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:text-foreground"
               }`}
             >
-              {TYPE_LABELS[t]}
+              {tLabel}
             </button>
           ))}
         </div>
-      </FormSection>
 
-      {/* Question text */}
-      <FormSection title="Question">
-        <div>
-          <Label htmlFor="qtext">Question text *</Label>
-          <Textarea
-            id="qtext"
-            value={text}
-            onChange={setText}
-            placeholder="Enter the question..."
-            rows={4}
+        {/* Question text */}
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Question text"
+          rows={3}
+          className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+        />
+
+        {/* Image uploader (IMAGE_BASED) */}
+        {type === "IMAGE_BASED" && (
+          <MediaUploader
+            defaultAsset={defaultValues?.mediaAsset ?? null}
+            onChange={(asset) => setMediaAssetId(asset?.id ?? null)}
           />
-        </div>
-      </FormSection>
+        )}
 
-      {/* Options (MCQ / MSQ / T-F / IMAGE_BASED) */}
-      {showOptions && (
-        <FormSection title="Answer Options">
-          {type === "MCQ" || type === "IMAGE_BASED" ? (
-            <p className="text-xs text-muted-foreground -mt-1">Click the circle to mark the correct answer.</p>
-          ) : type === "MSQ" ? (
-            <p className="text-xs text-muted-foreground -mt-1">Click checkboxes to mark all correct answers.</p>
-          ) : null}
-
-          <div className="space-y-2">
+        {/* Options — full-row clickable */}
+        {showOptions && (
+          <div className="space-y-1.5">
             {options.map((opt, idx) => (
-              <div key={idx} className="flex items-center gap-2">
-                {/* Correct indicator */}
-                <button
-                  type="button"
-                  onClick={() => toggleCorrect(idx)}
-                  title={opt.isCorrect ? "Correct answer" : "Mark as correct"}
-                  className={`flex-shrink-0 w-6 h-6 rounded-full border-2 transition-colors ${
+              <div
+                key={idx}
+                onClick={() => toggleCorrect(idx)}
+                className={`flex items-center gap-2.5 rounded-lg border px-3 py-2 cursor-pointer transition-colors group ${
+                  opt.isCorrect
+                    ? "border-green-400 bg-green-50 dark:border-green-600 dark:bg-green-900/20"
+                    : "border-border hover:border-primary/40 hover:bg-muted/30"
+                }`}
+              >
+                {/* Radio / checkbox indicator */}
+                <div
+                  className={`w-4 h-4 shrink-0 border-2 flex items-center justify-center transition-colors ${
+                    isMSQ ? "rounded" : "rounded-full"
+                  } ${
                     opt.isCorrect
                       ? "border-green-500 bg-green-500"
-                      : "border-border hover:border-green-400"
+                      : "border-muted-foreground/50 group-hover:border-primary/60"
                   }`}
-                  aria-pressed={opt.isCorrect}
                 >
                   {opt.isCorrect && (
-                    <svg className="w-full h-full text-white p-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
+                    <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                   )}
-                </button>
+                </div>
 
-                <Input
+                <input
+                  ref={(el) => { optionRefs.current[idx] = el; }}
                   value={opt.text}
-                  onChange={(v) => updateOptionText(idx, v)}
+                  onChange={(e) => updateOptionText(idx, e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => handleOptionKeyDown(e, idx)}
                   placeholder={
                     isTrueFalse
-                      ? idx === 0
-                        ? "True"
-                        : "False"
+                      ? idx === 0 ? "True" : "False"
                       : `Option ${String.fromCharCode(65 + idx)}`
                   }
-                  className="flex-1"
+                  readOnly={isTrueFalse}
+                  className="flex-1 bg-transparent border-none focus:outline-none text-sm text-foreground placeholder:text-muted-foreground min-w-0"
                 />
 
-                {!isTrueFalse && options.length > 2 && (
+                {!isTrueFalse && (
                   <button
                     type="button"
-                    onClick={() => removeOption(idx)}
-                    className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                    onClick={(e) => { e.stopPropagation(); removeOption(idx); }}
+                    disabled={options.length <= 2}
                     title="Remove option"
+                    className="shrink-0 w-5 h-5 flex items-center justify-center rounded text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:hidden transition-all"
                   >
                     ×
                   </button>
                 )}
               </div>
             ))}
+
+            {!isTrueFalse && options.length < 10 && (
+              <button
+                type="button"
+                onClick={addOption}
+                className="flex items-center gap-2 pl-2 py-1 text-sm text-muted-foreground hover:text-primary transition-colors"
+              >
+                <span className="w-4 h-4 rounded-full border-2 border-current flex items-center justify-center text-xs leading-none">+</span>
+                Add option
+                <span className="text-xs opacity-60 ml-1">or press Enter</span>
+              </button>
+            )}
+
+            {correctCount === 0 && options.length >= 2 && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 pl-1">
+                Click an option row to mark the correct answer.
+              </p>
+            )}
           </div>
+        )}
 
-          {!isTrueFalse && options.length < 10 && (
-            <button
-              type="button"
-              onClick={addOption}
-              className="mt-1 text-sm text-primary hover:underline"
-            >
-              + Add option
-            </button>
-          )}
-
-          {correctCount === 0 && options.length >= 2 && (
-            <p className="text-xs text-amber-600 dark:text-amber-400">
-              No correct answer selected. Mark at least one option as correct.
-            </p>
-          )}
-        </FormSection>
-      )}
-
-      {/* Numerical fields */}
-      {type === "NUMERICAL" && (
-        <FormSection title="Numerical Answer">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {/* Numerical answer */}
+        {type === "NUMERICAL" && (
+          <div className="flex flex-wrap items-end gap-3">
             <div>
-              <Label htmlFor="num-answer">Correct answer *</Label>
-              <Input
-                id="num-answer"
+              <label className="block text-xs text-muted-foreground mb-1">Correct answer *</label>
+              <input
                 type="number"
                 step="any"
                 value={numericalAnswer}
-                onChange={setNumericalAnswer}
-                placeholder="e.g. 3.14"
+                onChange={(e) => setNumericalAnswer(e.target.value)}
+                placeholder="e.g. 9.8"
+                className="w-32 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
             <div>
-              <Label htmlFor="num-tol">Tolerance (±)</Label>
-              <Input
-                id="num-tol"
+              <label className="block text-xs text-muted-foreground mb-1">± Tolerance</label>
+              <input
                 type="number"
                 step="any"
                 min="0"
                 value={numericalTolerance}
-                onChange={setNumericalTolerance}
-                placeholder="e.g. 0.01  (optional)"
+                onChange={(e) => setNumericalTolerance(e.target.value)}
+                placeholder="optional"
+                className="w-28 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
+            <p className="text-xs text-muted-foreground self-end pb-2">
+              Student answer must be within ± tolerance to be accepted.
+            </p>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Student answers within ± tolerance of the correct value are accepted.
-          </p>
-        </FormSection>
-      )}
+        )}
 
-      {/* Short text answer */}
-      {type === "SHORT_TEXT" && (
-        <FormSection title="Accepted Answer">
-          <Label htmlFor="text-answer">Correct answer *</Label>
-          <Input
-            id="text-answer"
-            value={textAnswer}
-            onChange={setTextAnswer}
-            placeholder="e.g. Support Vector Machine"
-          />
-          <p className="text-xs text-muted-foreground mt-1">
-            Exact-match mode: student answer must match this text (case-insensitive).
-            Manual grading is available post-exam.
-          </p>
-        </FormSection>
-      )}
-
-      {/* Media attachment (IMAGE_BASED) */}
-      {type === "IMAGE_BASED" && (
-        <FormSection title="Question Image">
-          <MediaUploader
-            defaultAsset={defaultValues?.mediaAsset ?? null}
-            onChange={(asset) => setMediaAssetId(asset?.id ?? null)}
-          />
-        </FormSection>
-      )}
-
-      {/* Marks */}
-      <FormSection title="Marks">
-        <div className="grid grid-cols-2 gap-4">
+        {/* Short text answer */}
+        {type === "SHORT_TEXT" && (
           <div>
-            <Label htmlFor="marks">Marks *</Label>
-            <Input
-              id="marks"
+            <label className="block text-xs text-muted-foreground mb-1">Correct answer *</label>
+            <input
+              type="text"
+              value={textAnswer}
+              onChange={(e) => setTextAnswer(e.target.value)}
+              placeholder="Expected answer (case-insensitive)"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+        )}
+
+        {/* Marks + explanation toggle */}
+        <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-border">
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-muted-foreground whitespace-nowrap">Marks</label>
+            <input
               type="number"
               step="0.5"
               min="0.5"
               value={marks}
-              onChange={setMarks}
-              placeholder="1"
+              onChange={(e) => setMarks(e.target.value)}
+              className="w-16 rounded-lg border border-border bg-background px-2 py-1.5 text-sm text-center text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
-          <div>
-            <Label htmlFor="neg-marks">Negative marks</Label>
-            <Input
-              id="neg-marks"
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-muted-foreground whitespace-nowrap">−ve marks</label>
+            <input
               type="number"
-              step="0.5"
+              step="0.25"
               min="0"
               value={negativeMarks}
-              onChange={setNegativeMarks}
-              placeholder="0"
+              onChange={(e) => setNegativeMarks(e.target.value)}
+              className="w-16 rounded-lg border border-border bg-background px-2 py-1.5 text-sm text-center text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
+          <button
+            type="button"
+            onClick={() => setShowExplanation((v) => !v)}
+            className="ml-auto text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {showExplanation ? "Hide explanation ↑" : "+ Add explanation"}
+          </button>
         </div>
-      </FormSection>
 
-      {/* Explanation (optional) */}
-      <FormSection title="Explanation (optional)">
-        <Textarea
-          id="explanation"
-          value={explanation}
-          onChange={setExplanation}
-          placeholder="Shown to students after result release..."
-          rows={3}
-        />
-      </FormSection>
+        {/* Explanation (collapsible) */}
+        {showExplanation && (
+          <textarea
+            value={explanation}
+            onChange={(e) => setExplanation(e.target.value)}
+            placeholder="Explanation shown to students after results are released..."
+            rows={2}
+            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+          />
+        )}
+      </div>
 
-      {/* Feedback */}
       {serverError && (
         <div className="rounded-lg bg-red-50 border border-red-200 dark:bg-red-900/20 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-400">
           {serverError}
@@ -495,16 +418,13 @@ export default function QuestionForm({
         </div>
       )}
 
-      {/* Submit */}
-      <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={isPending}
-          className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-opacity"
-        >
-          {isPending ? "Saving…" : label}
-        </button>
-      </div>
+      <button
+        type="submit"
+        disabled={isPending}
+        className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-opacity"
+      >
+        {isPending ? "Saving…" : label}
+      </button>
     </form>
   );
 }

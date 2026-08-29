@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
-import { parseQuestionsCSV } from "@/lib/utils/csvImport";
+import {
+  extractQuestionsFromText,
+  QuestionExtractionNotConfiguredError,
+  QuestionExtractionError,
+  type ExtractedQuestion,
+} from "@/lib/ai/extractQuestions";
 
-const MAX_SIZE = 2 * 1024 * 1024; // 2 MB
+const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await requireAdmin();
@@ -19,85 +24,101 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const url = new URL(req.url);
   const confirm = url.searchParams.get("confirm") === "true";
 
-  // Parse multipart
-  let csvText: string;
+  // ── Confirm: accept reviewed questions as JSON body ───────────────────────────
+  if (confirm) {
+    let questions: ExtractedQuestion[];
+    try {
+      const body = await req.json();
+      if (!Array.isArray(body.questions)) {
+        return NextResponse.json({ error: "Request body must have a questions array" }, { status: 400 });
+      }
+      questions = body.questions as ExtractedQuestion[];
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
+
+    if (questions.length === 0) {
+      return NextResponse.json({ error: "No questions to import" }, { status: 422 });
+    }
+
+    const ALLOWED_TYPES = new Set(["MCQ", "MSQ", "TRUE_FALSE", "SHORT_TEXT", "NUMERICAL"]);
+    for (const q of questions) {
+      if (!ALLOWED_TYPES.has(q.type)) {
+        return NextResponse.json({ error: `Invalid question type: ${q.type}` }, { status: 422 });
+      }
+      if (!q.text?.trim()) {
+        return NextResponse.json({ error: "All questions must have non-empty text" }, { status: 422 });
+      }
+    }
+
+    const maxOrder = await db.question.aggregate({
+      where: { examId },
+      _max: { displayOrder: true },
+    });
+    let nextOrder = (maxOrder._max.displayOrder ?? 0) + 1;
+
+    const created = await db.$transaction(
+      questions.map((q) => {
+        const order = nextOrder++;
+        return db.question.create({
+          data: {
+            examId,
+            type: q.type,
+            text: q.text.trim(),
+            marks: Math.max(0, Number(q.marks) || 1),
+            negativeMarks: Math.max(0, Number(q.negativeMarks) || 0),
+            numericalAnswer: q.numericalAnswer ?? null,
+            numericalTolerance: q.numericalTolerance ?? null,
+            textAnswer: q.textAnswer?.trim() || null,
+            displayOrder: order,
+            options: {
+              create: (q.options ?? []).map((o, i) => ({
+                text: o.text.trim(),
+                isCorrect: Boolean(o.isCorrect),
+                displayOrder: i,
+              })),
+            },
+          },
+          select: { id: true },
+        });
+      })
+    );
+
+    return NextResponse.json({ success: true, imported: created.length });
+  }
+
+  // ── Extract: receive file, run AI, return preview ─────────────────────────────
+  let fileText: string;
   try {
     const formData = await req.formData();
-    const file = formData.get("csv");
+    const file = formData.get("file");
     if (!file || typeof file === "string") {
-      return NextResponse.json({ error: "Missing CSV file (field name: csv)" }, { status: 400 });
+      return NextResponse.json({ error: "Missing file (field name: file)" }, { status: 400 });
     }
     if (file.size > MAX_SIZE) {
-      return NextResponse.json({ error: "File too large (max 2 MB)" }, { status: 413 });
+      return NextResponse.json({ error: "File too large (max 5 MB)" }, { status: 413 });
     }
-    const mimeOk = file.type === "text/csv" || file.type === "text/plain" || file.name.endsWith(".csv");
-    if (!mimeOk) {
-      return NextResponse.json({ error: "Only CSV files are accepted" }, { status: 415 });
+    fileText = await file.text();
+    if (!fileText.trim()) {
+      return NextResponse.json({ error: "The file appears to be empty" }, { status: 400 });
     }
-    csvText = await file.text();
   } catch {
     return NextResponse.json({ error: "Failed to read uploaded file" }, { status: 400 });
   }
 
-  const result = parseQuestionsCSV(csvText);
-
-  if (!confirm) {
-    // Preview (dry run): return validation results without writing
-    return NextResponse.json({
-      preview: true,
-      totalRows: result.totalRows,
-      validCount: result.valid.length,
-      errorCount: result.errors.length,
-      errors: result.errors,
-      questions: result.valid,
-    });
+  try {
+    const { questions } = await extractQuestionsFromText(fileText);
+    return NextResponse.json({ preview: true, count: questions.length, questions });
+  } catch (err) {
+    if (err instanceof QuestionExtractionNotConfiguredError) {
+      return NextResponse.json(
+        { error: "AI extraction is not configured. Add GEMINI_API_KEY to your environment variables." },
+        { status: 503 }
+      );
+    }
+    if (err instanceof QuestionExtractionError) {
+      return NextResponse.json({ error: err.message }, { status: 422 });
+    }
+    return NextResponse.json({ error: "Extraction failed. Please try again." }, { status: 500 });
   }
-
-  // ── Actual import ────────────────────────────────────────────────────────────
-  if (result.valid.length === 0) {
-    return NextResponse.json(
-      { error: "No valid questions to import", errors: result.errors },
-      { status: 422 }
-    );
-  }
-
-  const maxOrder = await db.question.aggregate({
-    where: { examId },
-    _max: { displayOrder: true },
-  });
-  let nextOrder = (maxOrder._max.displayOrder ?? 0) + 1;
-
-  const created = await db.$transaction(
-    result.valid.map((q) => {
-      const order = nextOrder++;
-      return db.question.create({
-        data: {
-          examId,
-          type: q.type,
-          text: q.text,
-          marks: q.marks,
-          negativeMarks: q.negativeMarks,
-          numericalAnswer: q.numericalAnswer,
-          numericalTolerance: q.numericalTolerance,
-          textAnswer: q.textAnswer,
-          displayOrder: order,
-          options: {
-            create: q.options.map((o) => ({
-              text: o.text,
-              isCorrect: o.isCorrect,
-              displayOrder: o.displayOrder,
-            })),
-          },
-        },
-        select: { id: true },
-      });
-    })
-  );
-
-  return NextResponse.json({
-    success: true,
-    imported: created.length,
-    skipped: result.errors.length > 0 ? result.totalRows - result.valid.length : 0,
-    errors: result.errors,
-  });
 }

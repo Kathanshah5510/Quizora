@@ -134,6 +134,90 @@ function normalizeQuestion(raw: unknown): ExtractedQuestion | null {
   };
 }
 
+const TEXT_EXTRACTION_PROMPT = `You are an expert exam question parser. The provided content is a CSV, TSV, or plain-text file containing exam questions. Column names, order, and format may vary widely.
+
+Intelligently identify and extract every question. Common patterns to recognize:
+- Question column: "Question", "Q", "Statement", "Text", "Problem"
+- Options: "Option A"/"A"/"Choice 1", "B"/"Choice 2", "option_a"/"option_b", etc.
+- Answer/Correct: a letter (A/B/C/D), the option text itself, True/False, or a number
+- Marks: "Marks", "Points", "Score" (default 1 if absent)
+- Negative marks: "Negative", "NM", "Penalty" (default 0 if absent)
+
+Infer question type from the data:
+- Single letter answer (A, B, C, D) → MCQ
+- Multiple letters (A|B or A,B) → MSQ
+- True/False answer → TRUE_FALSE
+- Numeric answer → NUMERICAL
+- Free text answer → SHORT_TEXT
+
+For each question output:
+- type: "MCQ" | "MSQ" | "TRUE_FALSE" | "SHORT_TEXT" | "NUMERICAL"
+- text: the question text (clean, no numbering)
+- options: [{text, isCorrect}] for MCQ/MSQ/TRUE_FALSE; [] for NUMERICAL/SHORT_TEXT
+- marks: number (default 1)
+- negativeMarks: number (default 0)
+- numericalAnswer: number | null
+- numericalTolerance: number | null
+- textAnswer: string | null
+
+Rules:
+- Skip header rows and blank rows
+- Strip option labels (A., (a), 1., etc.) from option text before storing
+- If answer is a letter, match it to the corresponding option (A=1st option, B=2nd, etc.)
+- For MCQ / TRUE_FALSE: exactly one option isCorrect:true
+- For MSQ: multiple options isCorrect:true
+
+Respond with ONLY a valid JSON array — no markdown, no code fences, no explanation.`;
+
+export async function extractQuestionsFromText(text: string): Promise<ExtractResult> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new QuestionExtractionNotConfiguredError();
+
+  const model = process.env.GEMINI_MODEL ?? "gemini-2.0-flash-exp";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [
+        {
+          parts: [
+            { text: `${TEXT_EXTRACTION_PROMPT}\n\nContent to parse:\n\`\`\`\n${text.slice(0, 50000)}\n\`\`\`` },
+          ],
+        },
+      ],
+      generationConfig: { maxOutputTokens: 8192, temperature: 0.1 },
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new QuestionExtractionError(`AI provider responded with ${res.status}: ${errText.slice(0, 300)}`);
+  }
+
+  const data = await res.json();
+  const rawText: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+  if (!rawText) throw new QuestionExtractionError("AI provider returned an empty response");
+
+  const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+  if (!jsonMatch) {
+    throw new QuestionExtractionError(`AI response did not contain a JSON array. Raw: ${rawText.slice(0, 300)}`);
+  }
+
+  let parsed: unknown[];
+  try {
+    parsed = JSON.parse(jsonMatch[0]);
+  } catch {
+    throw new QuestionExtractionError("Failed to parse AI response as JSON array");
+  }
+
+  if (!Array.isArray(parsed)) throw new QuestionExtractionError("AI returned a non-array JSON value");
+
+  const questions = parsed.map(normalizeQuestion).filter((q): q is ExtractedQuestion => q !== null);
+  return { questions, rawResponse: rawText };
+}
+
 export async function extractQuestionsFromPDF(
   pdfBase64: string,
   fileSizeBytes: number

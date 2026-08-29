@@ -26,6 +26,14 @@ export default async function ImportQuestionsPage({
   return (
     <div className="max-w-2xl space-y-6">
       <div>
+        <div className="flex items-center gap-2 mb-3">
+          <Link
+            href={`/admin/exams/${examId}/questions`}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+          >
+            ← Back to Questions
+          </Link>
+        </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Link href="/admin/exams" className="hover:text-foreground transition-colors">Exams</Link>
           <span>/</span>
@@ -37,11 +45,11 @@ export default async function ImportQuestionsPage({
             Questions
           </Link>
           <span>/</span>
-          <span className="text-foreground">Import</span>
+          <span className="text-foreground">Import from CSV</span>
         </div>
-        <h1 className="text-xl font-bold text-foreground mt-3">Bulk Import Questions</h1>
+        <h1 className="text-xl font-bold text-foreground mt-3">Import Questions from CSV</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Upload a CSV file to add multiple questions at once. Invalid rows are reported and skipped — valid rows are imported.
+          Upload any CSV or text file — AI extracts and normalizes questions regardless of column format.
         </p>
       </div>
 
