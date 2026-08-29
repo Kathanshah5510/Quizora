@@ -62,9 +62,15 @@ export default function ResultPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const raw = sessionStorage.getItem(`quizora_session_${slug}`);
+    // localStorage persists after tab close; sessionStorage is the in-tab fallback
+    const sessionKey = `quizora_session_${slug}`;
+    let raw: string | null = null;
+    try { raw = localStorage.getItem(sessionKey); } catch { /* unavailable */ }
     if (!raw) {
-      setError("No exam session found. Please start the exam first.");
+      try { raw = sessionStorage.getItem(sessionKey); } catch { /* unavailable */ }
+    }
+    if (!raw) {
+      setError("No exam session found. Please return to the exam start page and re-enter your details.");
       setLoading(false);
       return;
     }

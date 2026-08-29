@@ -23,10 +23,17 @@ function readStoredSession(slug: string): { sessionToken: string } | null {
 }
 
 function writeStoredSession(slug: string, attemptId: string, sessionToken: string): void {
+  const data = JSON.stringify({ attemptId, sessionToken });
   try {
-    sessionStorage.setItem(SESSION_KEY(slug), JSON.stringify({ attemptId, sessionToken }));
+    sessionStorage.setItem(SESSION_KEY(slug), data);
   } catch {
     // sessionStorage may be unavailable in some contexts; non-fatal
+  }
+  try {
+    // Also persist in localStorage so results remain accessible after the tab is closed
+    localStorage.setItem(SESSION_KEY(slug), data);
+  } catch {
+    // localStorage may be unavailable (private browsing, storage quota); non-fatal
   }
 }
 

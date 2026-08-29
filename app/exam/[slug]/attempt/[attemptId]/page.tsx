@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, useTransition, Suspense } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useExamGuard } from "@/components/exam/useExamGuard";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -470,7 +471,7 @@ function ExamSessionInner() {
   if (submitted) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="max-w-md text-center space-y-4">
+        <div className="max-w-md w-full text-center space-y-4">
           <div className="text-5xl">✅</div>
           <h1 className="text-2xl font-bold">Exam Submitted</h1>
           <p className="text-muted-foreground">
@@ -483,6 +484,15 @@ function ExamSessionInner() {
               <p className="text-xs text-muted-foreground mt-1">Keep this for your records.</p>
             </div>
           )}
+          <Link
+            href={`/exam/${slug}/result`}
+            className="inline-block w-full rounded-md bg-primary text-primary-foreground px-6 py-2.5 text-sm font-semibold hover:bg-primary/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            View Your Results →
+          </Link>
+          <p className="text-xs text-muted-foreground">
+            Results are shown once grading is complete and your instructor has released them.
+          </p>
         </div>
       </div>
     );
