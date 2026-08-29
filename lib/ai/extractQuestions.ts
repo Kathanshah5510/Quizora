@@ -173,7 +173,7 @@ export async function extractQuestionsFromText(text: string): Promise<ExtractRes
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new QuestionExtractionNotConfiguredError();
 
-  const model = process.env.GEMINI_MODEL ?? "gemini-2.0-flash-exp";
+  const model = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   const res = await fetch(url, {
@@ -225,7 +225,7 @@ export async function extractQuestionsFromPDF(
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new QuestionExtractionNotConfiguredError();
 
-  const model = process.env.GEMINI_MODEL ?? "gemini-2.0-flash-exp";
+  const model = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   const maxTokens = Math.min(8192, Math.max(2048, Math.ceil(fileSizeBytes / 500)));
