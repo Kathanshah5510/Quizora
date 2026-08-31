@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -110,5 +111,17 @@ export default async function MonitorPage({ params }: Props) {
     generatedAt: new Date().toISOString(),
   };
 
-  return <MonitorClient examId={examId} initialData={initialData} />;
+  return (
+    <div className="space-y-4">
+      <div>
+        <Link
+          href={`/admin/exams/${examId}`}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+        >
+          ← Back to Exam
+        </Link>
+      </div>
+      <MonitorClient examId={examId} initialData={initialData} />
+    </div>
+  );
 }

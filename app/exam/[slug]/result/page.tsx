@@ -39,6 +39,8 @@ interface ResultData {
   maxScore: number;
   percentage: number | null;
   gradingStatus: string;
+  showAnswers: boolean;
+  availabilityEnd: string | null;
   questions: QuestionResult[];
 }
 
@@ -149,6 +151,8 @@ export default function ResultPage() {
     maxScore,
     percentage,
     gradingStatus,
+    showAnswers,
+    availabilityEnd,
     questions,
     submittedAt,
   } = data;
@@ -205,8 +209,18 @@ export default function ResultPage() {
           )}
         </div>
 
+        {/* Correct answers note */}
+        {!showAnswers && (
+          <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+            Correct answers will be visible after the exam availability window closes
+            {availabilityEnd
+              ? ` (${new Date(availabilityEnd).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}).`
+              : "."}
+          </div>
+        )}
+
         {/* Per-question breakdown */}
-        {questions.length > 0 && (
+        {showAnswers && questions.length > 0 && (
           <div className="space-y-4">
             <h2 className="text-sm font-semibold text-foreground">Question Breakdown</h2>
             {questions.map((q, idx) => {

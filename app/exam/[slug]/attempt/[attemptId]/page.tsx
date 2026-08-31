@@ -38,6 +38,7 @@ interface QuestionPayload {
   remainingSeconds: number;
   timerMode: string;
   perQuestionSeconds: number | null;
+  fullScreenRequired: boolean;
   savedResponse: SavedResponse | null;
 }
 
@@ -221,7 +222,10 @@ function ExamSessionInner() {
   const [remainingSeconds, setRemainingSeconds] = useState<number>(0);
   const [timerReady, setTimerReady] = useState(false);
   const [totalQuestions, setTotalQuestions] = useState(0);
-  const [allowBacktracking, setAllowBacktracking] = useState(true);
+  const [allowBacktracking, setAllowBacktracking] = useState(false);
+  const [timerMode, setTimerMode] = useState<string>("WHOLE_QUIZ");
+  const [perQuestionSeconds, setPerQuestionSeconds] = useState<number | null>(null);
+  const [perQuestionRemaining, setPerQuestionRemaining] = useState<number>(0);
   const [fullScreenRequired, setFullScreenRequired] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submissionId, setSubmissionId] = useState<string | null>(null);
@@ -231,6 +235,7 @@ function ExamSessionInner() {
   const [isPending, startTransition] = useTransition();
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const perQTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Read session token from sessionStorage on mount (never from URL)
   useEffect(() => {
@@ -250,16 +255,6 @@ function ExamSessionInner() {
       setSessionMissing(true);
     }
   }, [slug, attemptId]);
-
-  // Fetch exam info to populate fullScreenRequired
-  useEffect(() => {
-    fetch(`/api/exam/${slug}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.exam?.fullScreenRequired) setFullScreenRequired(true);
-      })
-      .catch(() => {});
-  }, [slug]);
 
   // Load a question by index — sessionToken sent via header, never in URL
   const loadQuestion = useCallback(
@@ -286,7 +281,14 @@ function ExamSessionInner() {
         setRemainingSeconds(data.remainingSeconds);
         setTimerReady(true);
         setTotalQuestions(data.totalQuestions);
-        setAllowBacktracking(data.allowBacktracking);
+        // PER_QUESTION mode: backtracking is never allowed
+        setAllowBacktracking(data.timerMode === "PER_QUESTION" ? false : data.allowBacktracking);
+        setTimerMode(data.timerMode);
+        setPerQuestionSeconds(data.perQuestionSeconds ?? null);
+        if (data.timerMode === "PER_QUESTION" && data.perQuestionSeconds) {
+          setPerQuestionRemaining(data.perQuestionSeconds);
+        }
+        setFullScreenRequired(data.fullScreenRequired ?? false);
         setCurrentIndex(index);
       } catch {
         setLoadError("Network error. Please check your connection.");
@@ -300,9 +302,9 @@ function ExamSessionInner() {
     loadQuestion(0);
   }, [loadQuestion]);
 
-  // Countdown timer — only starts after the first question has loaded (timerReady=true)
+  // Whole-quiz countdown — only active for WHOLE_QUIZ mode
   useEffect(() => {
-    if (submitted || !timerReady) return;
+    if (submitted || !timerReady || timerMode === "PER_QUESTION") return;
     timerRef.current = setInterval(() => {
       setRemainingSeconds((prev) => {
         if (prev <= 1) {
@@ -314,7 +316,37 @@ function ExamSessionInner() {
       });
     }, 1000);
     return () => clearInterval(timerRef.current!);
-  }, [submitted, timerReady]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [submitted, timerReady, timerMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Per-question countdown — resets when currentIndex changes
+  useEffect(() => {
+    if (submitted || timerMode !== "PER_QUESTION" || !perQuestionSeconds) return;
+    clearInterval(perQTimerRef.current!);
+    setPerQuestionRemaining(perQuestionSeconds);
+    perQTimerRef.current = setInterval(() => {
+      setPerQuestionRemaining((prev) => {
+        if (prev <= 1) {
+          clearInterval(perQTimerRef.current!);
+          // Auto-advance to next question or submit if last
+          setTotalQuestions((total) => {
+            setCurrentIndex((idx) => {
+              if (idx < total - 1) {
+                // Navigate to next question (deferred to avoid state-in-render)
+                setTimeout(() => navigateTo(idx + 1), 0);
+              } else {
+                handleAutoSubmit();
+              }
+              return idx;
+            });
+            return total;
+          });
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(perQTimerRef.current!);
+  }, [submitted, timerMode, perQuestionSeconds, currentIndex]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync timer from server every 30 seconds — token via header
   useEffect(() => {
@@ -502,7 +534,11 @@ function ExamSessionInner() {
     );
   }
 
-  const isLow = remainingSeconds > 0 && remainingSeconds <= 300; // ≤ 5 minutes = warning
+  const isPQ = timerMode === "PER_QUESTION";
+  const displayTime = isPQ ? perQuestionRemaining : remainingSeconds;
+  const isLow = isPQ
+    ? displayTime > 0 && displayTime <= 10
+    : displayTime > 0 && displayTime <= 300; // ≤ 5 min whole-quiz / ≤ 10 s per-question
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -537,14 +573,19 @@ function ExamSessionInner() {
           </span>
 
           {/* Timer */}
-          <div
-            className={`font-mono font-bold text-base tabular-nums ${
-              isLow ? "text-destructive animate-pulse" : ""
-            }`}
-            aria-label={`Time remaining: ${formatTime(remainingSeconds)}`}
-            aria-live="off"
-          >
-            {formatTime(remainingSeconds)}
+          <div className="flex flex-col items-end">
+            <div
+              className={`font-mono font-bold text-base tabular-nums ${
+                isLow ? "text-destructive animate-pulse" : ""
+              }`}
+              aria-label={`Time remaining: ${formatTime(displayTime)}`}
+              aria-live="off"
+            >
+              {formatTime(displayTime)}
+            </div>
+            {isPQ && (
+              <span className="text-[10px] text-muted-foreground leading-none">this question</span>
+            )}
           </div>
         </div>
       </header>

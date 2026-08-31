@@ -35,6 +35,7 @@ export async function GET(
         select: {
           title: true,
           resultRelease: true,
+          availabilityEnd: true,
         },
       },
       result: {
@@ -90,7 +91,15 @@ export async function GET(
     });
   }
 
-  // Build per-question breakdown with correct answers (only sent when result is released)
+  // For AUTO mode: show correct answers only after the availability window has ended.
+  // For MANUAL mode: answers are shown whenever the result is released (isReleased=true).
+  const availabilityEnd = attempt.exam.availabilityEnd;
+  const showAnswers =
+    attempt.exam.resultRelease === "MANUAL"
+      ? attempt.result.isReleased
+      : !availabilityEnd || new Date() > availabilityEnd;
+
+  // Build per-question breakdown with correct answers (only sent when showAnswers is true)
   const questions = await db.question.findMany({
     where: { examId: attempt.examId },
     orderBy: { displayOrder: "asc" },
@@ -132,16 +141,16 @@ export async function GET(
         : null,
       textAnswer: resp?.textAnswer ?? null,
       numericalAnswer: resp?.numericalAnswer != null ? Number(resp.numericalAnswer) : null,
-      // Correct answer (only in released results — not during active exam)
-      correctOptionIds: q.options.filter((o) => o.isCorrect).map((o) => o.id),
-      correctNumericalAnswer: q.numericalAnswer != null ? Number(q.numericalAnswer) : null,
-      correctNumericalTolerance: q.numericalTolerance != null ? Number(q.numericalTolerance) : null,
-      expectedTextAnswer: q.textAnswer,
-      // Options list for MCQ/MSQ display
+      // Correct answer — only sent when answers are revealed
+      correctOptionIds: showAnswers ? q.options.filter((o) => o.isCorrect).map((o) => o.id) : [],
+      correctNumericalAnswer: showAnswers && q.numericalAnswer != null ? Number(q.numericalAnswer) : null,
+      correctNumericalTolerance: showAnswers && q.numericalTolerance != null ? Number(q.numericalTolerance) : null,
+      expectedTextAnswer: showAnswers ? q.textAnswer : null,
+      // Options list — isCorrect only sent when answers are revealed
       options: q.options.map((o) => ({
         id: o.id,
         text: o.text,
-        isCorrect: o.isCorrect,
+        isCorrect: showAnswers ? o.isCorrect : false,
       })),
       // Per-question grade
       earned: grade?.earned ?? null,
@@ -163,6 +172,8 @@ export async function GET(
     maxScore: summary.maxScore,
     percentage: summary.percentage,
     gradingStatus: summary.gradingStatus,
+    showAnswers,
+    availabilityEnd: availabilityEnd?.toISOString() ?? null,
     questions: questionBreakdown,
   });
 }

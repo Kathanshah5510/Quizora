@@ -54,6 +54,7 @@ export async function GET(
           allowBacktracking: true,
           timerMode: true,
           perQuestionSeconds: true,
+          fullScreenRequired: true,
           _count: { select: { questions: true } },
         },
       },
@@ -158,6 +159,7 @@ export async function GET(
     remainingSeconds: timer.remainingSeconds,
     timerMode: attempt.exam.timerMode,
     perQuestionSeconds: attempt.exam.perQuestionSeconds ?? null,
+    fullScreenRequired: attempt.exam.fullScreenRequired,
     savedResponse: savedResponse
       ? {
           selectedOptionIds: savedResponse.selectedOptionIds ?? null,

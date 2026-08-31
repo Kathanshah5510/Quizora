@@ -162,14 +162,6 @@ export default async function ExamLandingPage({
           {exam.timerMode === "PER_QUESTION" && exam.perQuestionSeconds && (
             <InfoRow label="Time per question" value={`${exam.perQuestionSeconds} sec`} />
           )}
-          <InfoRow
-            label="Attempts allowed"
-            value={exam.attemptsAllowed === 1 ? "1 (single attempt)" : String(exam.attemptsAllowed)}
-          />
-          <InfoRow
-            label="Navigation"
-            value={exam.allowBacktracking ? "Can go back to previous questions" : "Forward only — cannot revisit questions"}
-          />
           {exam.availabilityStart && (
             <InfoRow label="Opens" value={formatDateTime(exam.availabilityStart)} />
           )}
@@ -193,6 +185,17 @@ export default async function ExamLandingPage({
               <li>Only one attempt is allowed per student.</li>
             )}
           </ul>
+        </div>
+
+        {/* Disclaimer */}
+        <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground space-y-1">
+          <p>
+            By starting this exam you confirm that your submission will be your own work. Any breach of
+            academic integrity may result in disqualification.
+          </p>
+          <p>
+            Results are released by your instructor after grading is complete.
+          </p>
         </div>
 
         {/* CTA */}

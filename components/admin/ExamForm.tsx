@@ -278,10 +278,10 @@ export default function ExamForm({ action, courses, defaultValues, isEdit = fals
             <CheckboxField
               id="allowBacktracking"
               name="allowBacktracking"
-              label="Allow backtracking"
-              description="Students can go to previous questions and use question navigator"
-              defaultChecked={defaultValues?.allowBacktracking ?? true}
-              disabled={pending}
+              label={timerMode === "PER_QUESTION" ? "Allow backtracking (disabled — incompatible with per-question timer)" : "Allow backtracking"}
+              description={timerMode === "PER_QUESTION" ? "Cannot allow backtracking when using a per-question timer — questions auto-advance on timeout." : "Students can go to previous questions and use question navigator"}
+              defaultChecked={timerMode === "PER_QUESTION" ? false : (defaultValues?.allowBacktracking ?? true)}
+              disabled={timerMode === "PER_QUESTION" || pending}
             />
             <CheckboxField
               id="randomizeQuestions"
