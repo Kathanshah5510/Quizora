@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useExamGuard } from "@/components/exam/useExamGuard";
+import ThemeToggle from "@/components/ThemeToggle";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -573,6 +574,7 @@ function ExamSessionInner() {
           </span>
 
           {/* Timer */}
+          <div className="flex items-center gap-2">
           <div className="flex flex-col items-end">
             <div
               className={`font-mono font-bold text-base tabular-nums ${
@@ -586,6 +588,8 @@ function ExamSessionInner() {
             {isPQ && (
               <span className="text-[10px] text-muted-foreground leading-none">this question</span>
             )}
+          </div>
+          <ThemeToggle />
           </div>
         </div>
       </header>

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { checkExamAccess, ExamAccessStatus } from "@/lib/exam/examAccess";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export async function generateMetadata({
   params,
@@ -124,10 +125,13 @@ export default async function ExamLandingPage({
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-card">
-        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-3">
-          <span className="font-bold text-lg text-primary">Quizora</span>
-          <span className="text-muted-foreground">/</span>
-          <span className="text-sm text-muted-foreground">{exam.course.code}</span>
+        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="font-bold text-lg text-primary">Quizora</span>
+            <span className="text-muted-foreground">/</span>
+            <span className="text-sm text-muted-foreground">{exam.course.code}</span>
+          </div>
+          <ThemeToggle />
         </div>
       </header>
 

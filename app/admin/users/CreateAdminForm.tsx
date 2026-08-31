@@ -1,12 +1,19 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
+import { toast } from "sonner";
 import { createAdminAction } from "./actions";
+import PasswordInput from "@/components/PasswordInput";
 
 const initialState: { error: string; success: boolean } = { error: "", success: false };
 
 export default function CreateAdminForm() {
   const [state, action, pending] = useActionState(createAdminAction, initialState);
+
+  useEffect(() => {
+    if (state?.success) toast.success("Admin account created successfully");
+    if (state?.error) toast.error(state.error);
+  }, [state]);
 
   if (state?.success) {
     return (
@@ -21,15 +28,16 @@ export default function CreateAdminForm() {
 
   return (
     <form action={action} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      {state?.error && (
-        <div className="sm:col-span-2 rounded-lg bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">
-          {state.error}
-        </div>
-      )}
-
       <Field id="name" name="name" label="Full name" type="text" placeholder="Prof. Example" disabled={pending} />
       <Field id="email" name="email" label="Email" type="email" placeholder="admin@example.com" disabled={pending} />
-      <Field id="password" name="password" label="Password" type="password" placeholder="Min 8 chars, 1 uppercase, 1 number" disabled={pending} />
+      <PasswordInput
+        id="password"
+        name="password"
+        label="Password"
+        autoComplete="new-password"
+        placeholder="Min 8 chars, 1 uppercase, 1 number"
+        disabled={pending}
+      />
 
       <div className="space-y-1.5">
         <label htmlFor="role" className="block text-sm font-medium text-foreground">

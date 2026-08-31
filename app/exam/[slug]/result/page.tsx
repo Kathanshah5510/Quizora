@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import CopyButton from "@/components/CopyButton";
 
 interface QuestionResult {
   questionId: string;
@@ -110,8 +111,21 @@ export default function ResultPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground text-sm">Loading results…</p>
+      <div className="min-h-screen px-4 py-12">
+        <div className="max-w-2xl mx-auto space-y-6 animate-pulse">
+          <div className="h-6 bg-muted rounded w-32 mx-auto" />
+          <div className="rounded-2xl border border-border bg-card px-8 py-8 space-y-4">
+            <div className="h-4 bg-muted rounded w-16 mx-auto" />
+            <div className="h-12 bg-muted rounded w-48 mx-auto" />
+            <div className="h-8 bg-muted rounded w-24 mx-auto" />
+          </div>
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="rounded-xl border border-border bg-card px-5 py-4 space-y-3">
+              <div className="h-4 bg-muted rounded w-3/4" />
+              <div className="h-3 bg-muted rounded w-1/2" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -193,9 +207,12 @@ export default function ResultPage() {
           )}
 
           {submissionId && (
-            <p className="text-xs text-muted-foreground font-mono">
-              Submission ID: {submissionId}
-            </p>
+            <div className="flex flex-col items-center gap-1">
+              <p className="text-xs text-muted-foreground font-mono">
+                Submission ID: {submissionId}
+              </p>
+              <CopyButton text={submissionId} />
+            </div>
           )}
 
           {submittedAt && (

@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import LoginForm from "./LoginForm";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export const metadata: Metadata = { title: "Sign In" };
 
@@ -10,7 +11,10 @@ export default async function LoginPage() {
   if (user) redirect("/admin/dashboard");
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4 relative">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-sm space-y-8">
         {/* Brand */}
         <div className="text-center space-y-2">
