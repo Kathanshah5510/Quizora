@@ -46,6 +46,9 @@ Thumbs.db
 *.swp
 *.swo
 
+# Claude Code workspace
+.claude/
+
 # Prisma
 # migrations are committed; generated client is not
 prisma/migrations/.DS_Store
