@@ -81,3 +81,46 @@ body {
   background-color: var(--background);
   color: var(--foreground);
 }
+
+/* ── Shared animations & utilities ── */
+@keyframes blob {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(30px, -20px) scale(1.07); }
+  66%       { transform: translate(-20px, 15px) scale(0.95); }
+}
+.blob1 { animation: blob 9s ease-in-out infinite; }
+.blob2 { animation: blob 12s ease-in-out infinite reverse; animation-delay: -3s; }
+.blob3 { animation: blob 15s ease-in-out infinite; animation-delay: -7s; }
+
+.grad-text {
+  background: linear-gradient(135deg, oklch(0.55 0.25 264) 0%, oklch(0.62 0.22 295) 60%, oklch(0.68 0.20 320) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, oklch(0.51 0.22 264), oklch(0.55 0.22 295));
+  color: white;
+  box-shadow: 0 0 24px oklch(0.51 0.22 264 / 0.38), 0 4px 14px oklch(0.51 0.22 264 / 0.2);
+  transition: box-shadow 0.22s ease, transform 0.18s ease, opacity 0.18s ease;
+}
+.btn-primary:hover:not(:disabled) {
+  box-shadow: 0 0 36px oklch(0.51 0.22 264 / 0.52), 0 6px 20px oklch(0.51 0.22 264 / 0.3);
+  transform: translateY(-1px);
+}
+.btn-primary:disabled { opacity: 0.55; }
+
+.sidebar-link {
+  transition: background 0.15s ease, color 0.15s ease;
+  color: oklch(0.62 0.06 264);
+}
+.sidebar-link:hover {
+  background: oklch(1 0 0 / 0.07);
+  color: white;
+}
+.sidebar-link-active {
+  background: linear-gradient(135deg, oklch(0.51 0.22 264 / 0.45), oklch(0.55 0.22 295 / 0.28));
+  color: white;
+  box-shadow: inset 2px 0 0 oklch(0.65 0.22 264);
+}

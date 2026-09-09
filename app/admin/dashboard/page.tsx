@@ -13,6 +13,12 @@ const STATUS_MAP: Record<string, { label: string; cls: string }> = {
   CLOSED: { label: "Closed", cls: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" },
 };
 
+const STAT_GRADIENTS = [
+  "linear-gradient(135deg, oklch(0.51 0.22 264), oklch(0.55 0.22 295))",
+  "linear-gradient(135deg, oklch(0.45 0.20 295), oklch(0.52 0.22 320))",
+  "linear-gradient(135deg, oklch(0.40 0.18 320), oklch(0.48 0.20 264))",
+];
+
 export default async function DashboardPage() {
   const user = await getSessionUser();
 
@@ -39,9 +45,11 @@ export default async function DashboardPage() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCard label="Courses" value={courseCount} href="/admin/courses" />
-        <StatCard label="Exams" value={examCount} href="/admin/exams" />
-        {user?.role === "SUPER_ADMIN" && <StatCard label="Admins" value={userCount} href="/admin/users" />}
+        <StatCard label="Courses" value={courseCount} href="/admin/courses" gradientIndex={0} />
+        <StatCard label="Exams" value={examCount} href="/admin/exams" gradientIndex={1} />
+        {user?.role === "SUPER_ADMIN" && (
+          <StatCard label="Admins" value={userCount} href="/admin/users" gradientIndex={2} />
+        )}
       </div>
 
       {/* Recent exams */}
@@ -108,11 +116,35 @@ export default async function DashboardPage() {
   );
 }
 
-function StatCard({ label, value, href }: { label: string; value: number; href: string }) {
+function StatCard({
+  label,
+  value,
+  href,
+  gradientIndex,
+}: {
+  label: string;
+  value: number;
+  href: string;
+  gradientIndex: number;
+}) {
+  const gradients = [
+    "linear-gradient(135deg, oklch(0.51 0.22 264), oklch(0.55 0.22 295))",
+    "linear-gradient(135deg, oklch(0.45 0.20 295), oklch(0.52 0.22 320))",
+    "linear-gradient(135deg, oklch(0.40 0.18 320), oklch(0.48 0.20 264))",
+  ];
+  const gradient = gradients[gradientIndex % gradients.length];
+
   return (
-    <Link href={href} className="rounded-xl border border-border bg-card p-5 hover:bg-muted/30 transition-colors block">
-      <p className="text-sm font-medium text-muted-foreground">{label}</p>
-      <p className="mt-1 text-3xl font-bold text-card-foreground">{value}</p>
+    <Link
+      href={href}
+      className="rounded-xl p-5 block group transition-transform hover:-translate-y-0.5"
+      style={{
+        background: gradient,
+        boxShadow: "0 4px 20px oklch(0.51 0.22 264 / 0.3)",
+      }}
+    >
+      <p className="text-sm font-medium text-white/80">{label}</p>
+      <p className="mt-1 text-4xl font-black text-white">{value}</p>
     </Link>
   );
 }

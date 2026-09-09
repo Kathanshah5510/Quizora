@@ -19,18 +19,20 @@ export default function AdminHeader({ user }: Props) {
   };
 
   return (
-    <header className="flex h-14 items-center justify-between gap-4 border-b border-border bg-card px-4 md:px-6">
+    <header className="flex h-14 items-center justify-between gap-4 border-b border-border bg-background/80 backdrop-blur-sm px-4 md:px-6">
       {/* Mobile hamburger — left side */}
       <MobileMenuButton role={user.role} />
 
       {/* Right side controls */}
-      <div className="flex items-center gap-2 ml-auto">
+      <div className="flex items-center gap-3 ml-auto">
         <ThemeToggle />
-        <span className="hidden sm:block text-sm text-muted-foreground">{user.name}</span>
+        <span className="hidden sm:block text-sm font-medium" style={{ color: "oklch(0.52 0.04 264)" }}>
+          {user.name}
+        </span>
         <button
           onClick={handleLogout}
           disabled={pending}
-          className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-accent transition-colors disabled:opacity-50"
+          className="btn-primary rounded-lg px-3 py-1.5 text-sm font-semibold"
         >
           {pending ? "Signing out…" : "Sign out"}
         </button>
