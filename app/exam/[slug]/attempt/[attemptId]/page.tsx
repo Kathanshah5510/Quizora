@@ -233,6 +233,7 @@ function ExamSessionInner() {
   const [tabViolations, setTabViolations] = useState(0);
   const [maxTabViolations, setMaxTabViolations] = useState(2);
   const [violationWarning, setViolationWarning] = useState(false);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -553,6 +554,37 @@ function ExamSessionInner() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      {/* Submit confirmation dialog */}
+      {showSubmitConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="max-w-sm w-full rounded-xl border border-border bg-card px-6 py-8 shadow-2xl text-center space-y-4">
+            <div className="text-4xl">📋</div>
+            <div>
+              <h2 className="text-lg font-bold">Submit Exam?</h2>
+              <p className="text-sm text-muted-foreground mt-1.5">
+                You are about to submit your answers. This action cannot be undone.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowSubmitConfirm(false)}
+                className="flex-1 rounded-lg border border-border px-4 py-2.5 text-sm font-medium hover:bg-muted transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => { setShowSubmitConfirm(false); await handleSubmit(); }}
+                className="flex-1 btn-primary rounded-lg px-4 py-2.5 text-sm font-semibold"
+              >
+                Submit Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Tab violation overlay warning */}
       {violationWarning && tabViolations > 0 && (
         <div
@@ -636,23 +668,24 @@ function ExamSessionInner() {
             ← Previous
           </button>
 
-          {/* Progress dots (max 20 shown) */}
-          <div className="flex gap-1 flex-wrap justify-center flex-1" role="navigation" aria-label="Question progress">
-            {Array.from({ length: Math.min(totalQuestions, 20) }).map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => navigateTo(i)}
-                disabled={!allowBacktracking && i < currentIndex || isPending}
-                className={`w-2 h-2 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
-                  i === currentIndex
-                    ? "bg-primary"
-                    : "bg-muted hover:bg-muted-foreground/40"
-                }`}
-                aria-label={`Question ${i + 1}${i === currentIndex ? " (current)" : ""}`}
-                aria-current={i === currentIndex ? "true" : undefined}
+          {/* Progress bar */}
+          <div className="flex-1 mx-3 space-y-1" aria-label="Question progress">
+            <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-300"
+                style={{
+                  width: totalQuestions > 0 ? `${((currentIndex + 1) / totalQuestions) * 100}%` : "0%",
+                  background: "linear-gradient(90deg, oklch(0.51 0.22 264), oklch(0.55 0.22 295))",
+                }}
+                role="progressbar"
+                aria-valuenow={currentIndex + 1}
+                aria-valuemin={1}
+                aria-valuemax={totalQuestions}
               />
-            ))}
+            </div>
+            <p className="text-center text-[10px] text-muted-foreground tabular-nums">
+              {currentIndex + 1} / {totalQuestions}
+            </p>
           </div>
 
           {currentIndex < totalQuestions - 1 ? (
@@ -660,7 +693,7 @@ function ExamSessionInner() {
               type="button"
               onClick={() => navigateTo(currentIndex + 1)}
               disabled={isPending}
-              className="rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="btn-primary rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label="Next question"
             >
               Next →
@@ -668,7 +701,7 @@ function ExamSessionInner() {
           ) : (
             <button
               type="button"
-              onClick={handleSubmit}
+              onClick={() => setShowSubmitConfirm(true)}
               disabled={isPending}
               className="rounded-md bg-green-600 text-white px-4 py-2 text-sm font-semibold hover:bg-green-700 transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
