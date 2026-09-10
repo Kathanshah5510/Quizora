@@ -112,6 +112,21 @@ export default function MonitorClient({ examId, initialData }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [countdown, setCountdown] = useState(30);
+  const [extendingId, setExtendingId] = useState<string | null>(null);
+  const [extendSuccess, setExtendSuccess] = useState<Record<string, string>>({});
+
+  async function handleExtend(attemptId: string, minutes: number) {
+    const res = await fetch(`/api/admin/exams/${examId}/attempts/${attemptId}/extend`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ minutes }),
+    });
+    if (res.ok) {
+      setExtendingId(null);
+      setExtendSuccess((prev) => ({ ...prev, [attemptId]: `+${minutes}m added` }));
+      setTimeout(() => setExtendSuccess((prev) => { const next = { ...prev }; delete next[attemptId]; return next; }), 4000);
+    }
+  }
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -279,12 +294,45 @@ export default function MonitorClient({ examId, initialData }: Props) {
                         )}
                       </td>
                       <td className="px-4 py-2.5">
-                        <Link
-                          href={`/admin/exams/${examId}/results/${a.id}/events`}
-                          className="text-xs text-primary hover:underline"
-                        >
-                          Events →
-                        </Link>
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <Link
+                            href={`/admin/exams/${examId}/results/${a.id}/events`}
+                            className="text-xs text-primary hover:underline"
+                          >
+                            Events →
+                          </Link>
+                          {extendSuccess[a.id] ? (
+                            <span className="text-xs text-green-600 dark:text-green-400">{extendSuccess[a.id]}</span>
+                          ) : extendingId === a.id ? (
+                            <span className="inline-flex items-center gap-1">
+                              {[5, 10, 15, 30].map((m) => (
+                                <button
+                                  key={m}
+                                  type="button"
+                                  onClick={() => handleExtend(a.id, m)}
+                                  className="rounded border border-border px-1.5 py-0.5 text-xs font-medium hover:bg-muted transition-colors"
+                                >
+                                  +{m}m
+                                </button>
+                              ))}
+                              <button
+                                type="button"
+                                onClick={() => setExtendingId(null)}
+                                className="text-xs text-muted-foreground hover:text-foreground"
+                              >
+                                ✕
+                              </button>
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setExtendingId(a.id)}
+                              className="text-xs text-muted-foreground hover:text-foreground hover:underline transition-colors"
+                            >
+                              Extend
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}

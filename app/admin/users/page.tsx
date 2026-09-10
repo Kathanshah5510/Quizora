@@ -4,6 +4,7 @@ import { requireSuperAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import CreateAdminForm from "./CreateAdminForm";
 import DeleteAdminButton from "./DeleteAdminButton";
+import ResetPasswordButton from "./ResetPasswordButton";
 import { formatDate } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Admins" };
@@ -76,11 +77,16 @@ export default async function UsersPage() {
                   {formatDate(admin.createdAt)}
                 </td>
                 <td className="px-4 py-3">
-                  <DeleteAdminButton
-                    userId={admin.id}
-                    adminName={admin.name}
-                    isSelf={admin.id === caller.id}
-                  />
+                  <div className="flex flex-col gap-1.5">
+                    <DeleteAdminButton
+                      userId={admin.id}
+                      adminName={admin.name}
+                      isSelf={admin.id === caller.id}
+                    />
+                    {admin.id !== caller.id && (
+                      <ResetPasswordButton userId={admin.id} />
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}

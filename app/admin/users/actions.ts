@@ -51,6 +51,21 @@ export async function toggleAdminActiveAction(userId: string, isActive: boolean)
   return { success: true };
 }
 
+export async function resetAdminPasswordAction(userId: string, newPassword: string) {
+  const caller = await requireSuperAdmin();
+  if (!caller) return { error: "Unauthorized" };
+  if (userId === caller.id) return { error: "Use the profile page to change your own password" };
+  if (!newPassword || newPassword.length < 8) return { error: "Password must be at least 8 characters" };
+
+  const target = await db.user.findUnique({ where: { id: userId }, select: { id: true } });
+  if (!target) return { error: "Admin not found" };
+
+  const passwordHash = await bcrypt.hash(newPassword, 12);
+  await db.user.update({ where: { id: userId }, data: { passwordHash } });
+  revalidatePath("/admin/users");
+  return { success: true };
+}
+
 export async function deleteAdminAction(userId: string) {
   const caller = await requireSuperAdmin();
   if (!caller) return { error: "Unauthorized" };
