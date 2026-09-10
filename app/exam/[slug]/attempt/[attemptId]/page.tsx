@@ -480,19 +480,24 @@ function ExamSessionInner() {
   // ── Session missing ──────────────────────────────────────────────────────────
   if (sessionMissing) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="max-w-md text-center space-y-4">
-          <div className="text-4xl">🔒</div>
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 gap-6">
+        <div
+          className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-xl"
+          style={{
+            background: "linear-gradient(135deg, oklch(0.51 0.22 264), oklch(0.55 0.22 295))",
+            boxShadow: "0 0 20px oklch(0.51 0.22 264 / 0.4)",
+          }}
+        >
+          Q
+        </div>
+        <div className="max-w-md text-center space-y-3">
           <h1 className="text-xl font-bold">Session Not Found</h1>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-muted-foreground text-sm leading-relaxed">
             Your exam session could not be restored. This can happen if you opened the exam in a new
             tab or browser. Please return to the start page and re-enter your details to reconnect.
           </p>
-          <a
-            href={`/exam/${slug}/start`}
-            className="inline-block rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            Return to Start
+          <a href={`/exam/${slug}/start`} className="btn-primary inline-block rounded-xl px-6 py-2.5 text-sm font-semibold mt-2">
+            Return to Start →
           </a>
         </div>
       </div>
@@ -507,24 +512,29 @@ function ExamSessionInner() {
   // ── Submitted state ──────────────────────────────────────────────────────────
   if (submitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="max-w-md w-full text-center space-y-4">
-          <div className="text-5xl">✅</div>
-          <h1 className="text-2xl font-bold">Exam Submitted</h1>
-          <p className="text-muted-foreground">
-            Your responses have been recorded.
-          </p>
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 gap-6">
+        <div
+          className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-xl"
+          style={{
+            background: "linear-gradient(135deg, oklch(0.51 0.22 264), oklch(0.55 0.22 295))",
+            boxShadow: "0 0 20px oklch(0.51 0.22 264 / 0.4)",
+          }}
+        >
+          Q
+        </div>
+        <div className="max-w-sm w-full text-center space-y-4">
+          <div>
+            <h1 className="text-2xl font-extrabold" style={{ letterSpacing: "-0.02em" }}>Exam Submitted</h1>
+            <p className="text-sm text-muted-foreground mt-1">Your responses have been recorded.</p>
+          </div>
           {submissionId && (
-            <div className="rounded-lg border bg-card px-4 py-3">
+            <div className="rounded-xl border border-border bg-card px-5 py-4">
               <p className="text-xs text-muted-foreground mb-1">Submission ID</p>
-              <p className="font-mono font-bold text-lg">{submissionId}</p>
-              <p className="text-xs text-muted-foreground mt-1">Keep this for your records.</p>
+              <p className="font-mono font-bold text-base tracking-wide">{submissionId}</p>
+              <p className="text-xs text-muted-foreground mt-1.5">Keep this for your records.</p>
             </div>
           )}
-          <Link
-            href={`/exam/${slug}/result`}
-            className="inline-block w-full rounded-md bg-primary text-primary-foreground px-6 py-2.5 text-sm font-semibold hover:bg-primary/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
+          <Link href={`/exam/${slug}/result`} className="btn-primary inline-flex w-full items-center justify-center rounded-xl px-6 py-3 text-sm font-bold">
             View Your Results →
           </Link>
           <p className="text-xs text-muted-foreground">

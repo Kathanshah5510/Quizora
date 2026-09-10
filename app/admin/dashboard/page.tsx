@@ -22,11 +22,20 @@ const STAT_GRADIENTS = [
 export default async function DashboardPage() {
   const user = await getSessionUser();
 
-  const [examCount, courseCount, userCount, recentExams] = await Promise.all([
-    db.exam.count(),
-    db.course.count(),
-    db.user.count(),
+  const [examCount, courseCount, userCount, liveExams, recentExams] = await Promise.all([
+    db.exam.count({ where: { isDeleted: false } }),
+    db.course.count({ where: { isDeleted: false } }),
+    db.user.count({ where: { isActive: true } }),
     db.exam.findMany({
+      where: { isDeleted: false, status: { in: ["ACTIVE", "PUBLISHED"] } },
+      orderBy: [{ status: "asc" }, { updatedAt: "desc" }],
+      include: {
+        course: { select: { code: true } },
+        _count: { select: { attempts: true } },
+      },
+    }),
+    db.exam.findMany({
+      where: { isDeleted: false },
       take: 5,
       orderBy: { updatedAt: "desc" },
       include: {
@@ -51,6 +60,55 @@ export default async function DashboardPage() {
           <StatCard label="Admins" value={userCount} href="/admin/users" gradientIndex={2} />
         )}
       </div>
+
+      {/* Live / Published exams */}
+      {liveExams.length > 0 && (
+        <div className="rounded-xl border overflow-hidden" style={{ borderColor: "oklch(0.65 0.18 160 / 0.5)", background: "oklch(0.96 0.02 160 / 0.3)" }}>
+          <div className="flex items-center gap-2 px-5 py-3 border-b" style={{ borderColor: "oklch(0.65 0.18 160 / 0.3)" }}>
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: "oklch(0.55 0.18 160)" }} />
+              <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: "oklch(0.45 0.18 160)" }} />
+            </span>
+            <h2 className="text-sm font-semibold" style={{ color: "oklch(0.32 0.12 160)" }}>
+              Live &amp; Published
+            </h2>
+          </div>
+          <div className="divide-y" style={{ borderColor: "oklch(0.65 0.18 160 / 0.2)" }}>
+            {liveExams.map((exam) => {
+              const isActive = exam.status === "ACTIVE";
+              return (
+                <div key={exam.id} className="flex items-center gap-3 px-5 py-3">
+                  <span
+                    className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shrink-0"
+                    style={
+                      isActive
+                        ? { background: "oklch(0.85 0.12 160 / 0.5)", color: "oklch(0.32 0.12 160)" }
+                        : { background: "oklch(0.88 0.08 264 / 0.5)", color: "oklch(0.35 0.15 264)" }
+                    }
+                  >
+                    {isActive ? "Active" : "Published"}
+                  </span>
+                  <span className="font-mono text-xs text-muted-foreground shrink-0">{exam.course.code}</span>
+                  <span className="flex-1 text-sm font-medium text-foreground truncate">{exam.title}</span>
+                  <span className="text-xs text-muted-foreground shrink-0">
+                    {exam._count.attempts} attempt{exam._count.attempts !== 1 ? "s" : ""}
+                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {isActive && (
+                      <Link href={`/admin/exams/${exam.id}/monitor`} className="text-xs font-medium hover:underline" style={{ color: "oklch(0.42 0.16 160)" }}>
+                        Monitor →
+                      </Link>
+                    )}
+                    <Link href={`/admin/exams/${exam.id}/results`} className="text-xs text-primary hover:underline font-medium">
+                      Results →
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Recent exams */}
       <div className="rounded-xl border border-border bg-card overflow-hidden">

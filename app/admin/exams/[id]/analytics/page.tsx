@@ -95,6 +95,21 @@ export default async function AnalyticsPage({ params }: Props) {
   const avgScore = computeMean(scores);
   const medScore = computeMedian(scores);
 
+  // Score histogram — 10 buckets (0–10%, 10–20%, …, 90–100%)
+  const bucketCount = 10;
+  const histogram = Array.from({ length: bucketCount }, (_, i) => ({
+    label: `${i * 10}–${(i + 1) * 10}%`,
+    count: 0,
+  }));
+  if (maxPossible && maxPossible > 0) {
+    for (const s of scores) {
+      const pct = (s / maxPossible) * 100;
+      const bucket = Math.min(Math.floor(pct / 10), bucketCount - 1);
+      histogram[bucket].count++;
+    }
+  }
+  const histMax = Math.max(...histogram.map((b) => b.count), 1);
+
   // Question-level stats
   const questionStats: Record<string, { correct: number; attempted: number; totalEarned: number }> = {};
   for (const a of attempts) {
@@ -193,6 +208,52 @@ export default async function AnalyticsPage({ params }: Props) {
           </div>
         )}
       </div>
+
+      {/* Score histogram */}
+      {gradedAttempts.length > 0 && (
+        <div>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+            Score Distribution
+          </h2>
+          <div className="rounded-xl border border-border bg-card px-6 py-5">
+            <div className="flex items-end gap-1.5 h-28">
+              {histogram.map((bucket) => {
+                const heightPct = histMax > 0 ? (bucket.count / histMax) * 100 : 0;
+                const isEmpty = bucket.count === 0;
+                return (
+                  <div key={bucket.label} className="flex-1 flex flex-col items-center gap-1 min-w-0 group">
+                    {/* Count label */}
+                    <span className={`text-[10px] font-medium tabular-nums ${isEmpty ? "text-transparent" : "text-muted-foreground"}`}>
+                      {bucket.count}
+                    </span>
+                    {/* Bar */}
+                    <div className="w-full flex items-end" style={{ height: "72px" }}>
+                      <div
+                        className="w-full rounded-t-sm transition-all"
+                        style={{
+                          height: isEmpty ? "2px" : `${Math.max(heightPct, 4)}%`,
+                          background: isEmpty
+                            ? "oklch(0.88 0.012 264)"
+                            : "linear-gradient(to top, oklch(0.51 0.22 264), oklch(0.62 0.22 295))",
+                          opacity: isEmpty ? 0.4 : 1,
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {/* X-axis labels */}
+            <div className="flex gap-1.5 mt-1">
+              {histogram.map((bucket) => (
+                <div key={bucket.label} className="flex-1 min-w-0 text-center">
+                  <span className="text-[9px] text-muted-foreground leading-none">{bucket.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Per-question breakdown */}
       {orderedQuestionStats.length > 0 && (
