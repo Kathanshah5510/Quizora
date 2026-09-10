@@ -213,7 +213,7 @@ export default async function AttemptReviewPage({ params }: Props) {
           {resultSummary.gradingStatus !== "COMPLETE" && (
             <Link
               href={`/admin/exams/${examId}/results/${attemptId}/grade`}
-              className="ml-auto rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity"
+              className="btn-primary ml-auto rounded-lg px-4 py-2 text-sm font-semibold"
             >
               Grade Pending Questions →
             </Link>

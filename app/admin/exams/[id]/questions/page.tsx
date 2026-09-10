@@ -115,8 +115,14 @@ export default async function QuestionsPage({
                 📄 Import PDF
               </Link>
               <Link
+                href={`/admin/exams/${examId}/questions/copy`}
+                className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors whitespace-nowrap"
+              >
+                Copy from Exam
+              </Link>
+              <Link
                 href={`/admin/exams/${examId}/questions/new`}
-                className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity whitespace-nowrap"
+                className="btn-primary rounded-lg px-4 py-2 text-sm font-semibold whitespace-nowrap"
               >
                 + Add Question
               </Link>

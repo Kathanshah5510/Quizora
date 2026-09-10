@@ -255,6 +255,26 @@ export default function ResultPage() {
             </div>
           )}
 
+          {/* Progress bar */}
+          {percentage != null && (
+            <div className="w-full">
+              <div className="h-2.5 rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${Math.min(percentage, 100)}%`,
+                    background:
+                      percentage >= 60
+                        ? "linear-gradient(90deg, oklch(0.55 0.18 160), oklch(0.62 0.20 145))"
+                        : percentage >= 40
+                        ? "linear-gradient(90deg, oklch(0.72 0.18 80), oklch(0.75 0.20 65))"
+                        : "linear-gradient(90deg, oklch(0.60 0.22 25), oklch(0.65 0.24 15))",
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
           {/* Partial grading warning */}
           {gradingStatus === "PARTIAL" && (
             <p className="text-xs text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg px-4 py-2.5">

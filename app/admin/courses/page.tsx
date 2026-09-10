@@ -33,7 +33,7 @@ export default async function CoursesPage() {
         </div>
         <Link
           href="/admin/courses/new"
-          className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity"
+          className="btn-primary rounded-lg px-4 py-2.5 text-sm font-semibold"
         >
           + New Course
         </Link>
