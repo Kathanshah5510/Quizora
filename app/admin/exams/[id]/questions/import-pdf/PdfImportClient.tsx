@@ -122,7 +122,7 @@ export default function PdfImportClient({ examId }: Props) {
         <div className="flex items-center justify-center gap-3 pt-2">
           <a
             href={`/admin/exams/${examId}/questions`}
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity"
+            className="btn-primary rounded-lg px-4 py-2 text-sm font-semibold"
           >
             View Questions →
           </a>
@@ -160,7 +160,7 @@ export default function PdfImportClient({ examId }: Props) {
             <button
               onClick={handleImport}
               disabled={importing || questions.length === 0}
-              className="rounded-lg bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
+              className="btn-primary rounded-lg px-4 py-1.5 text-sm font-semibold disabled:opacity-50"
             >
               {importing ? "Importing…" : `Import ${questions.length} question${questions.length !== 1 ? "s" : ""}`}
             </button>
@@ -314,7 +314,7 @@ export default function PdfImportClient({ examId }: Props) {
             <button
               onClick={handleImport}
               disabled={importing || questions.length === 0}
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
+              className="btn-primary rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50"
             >
               {importing ? "Importing…" : `Import ${questions.length} question${questions.length !== 1 ? "s" : ""}`}
             </button>
@@ -391,7 +391,7 @@ export default function PdfImportClient({ examId }: Props) {
         <button
           onClick={handleExtract}
           disabled={uploading}
-          className="rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
+          className="btn-primary rounded-lg px-5 py-2 text-sm font-semibold disabled:opacity-50"
         >
           {uploading ? "Extracting questions…" : "Extract Questions with AI →"}
         </button>

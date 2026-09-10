@@ -37,7 +37,7 @@ export default function ReleaseToggle({ examId, anyReleased }: Props) {
         <button
           onClick={() => handleToggle(true)}
           disabled={isPending}
-          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
+          className="btn-primary rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50"
         >
           {isPending ? "Updating…" : "Release All"}
         </button>

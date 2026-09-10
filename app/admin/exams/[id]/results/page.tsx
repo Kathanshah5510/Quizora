@@ -197,9 +197,13 @@ export default async function ResultsPage({ params, searchParams }: Props) {
                           : <span className="text-muted-foreground">—</span>}
                       </td>
                       <td className="px-4 py-3 text-right font-mono text-sm">
-                        {result?.percentage != null
-                          ? `${result.percentage.toFixed(1)}%`
-                          : <span className="text-muted-foreground">—</span>}
+                        {result?.percentage != null ? (
+                          <span className={`font-semibold ${result.percentage >= 60 ? "text-green-600 dark:text-green-400" : result.percentage >= 40 ? "text-yellow-600 dark:text-yellow-400" : "text-red-600 dark:text-red-400"}`}>
+                            {result.percentage.toFixed(1)}%
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground text-xs hidden lg:table-cell">
                         {a.submittedAt ? formatDateTime(a.submittedAt) : "—"}

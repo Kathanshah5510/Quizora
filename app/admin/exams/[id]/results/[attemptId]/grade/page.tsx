@@ -104,7 +104,7 @@ export default async function GradeResponsesPage({ params }: Props) {
           </p>
           <Link
             href={`/admin/exams/${examId}/results/${attemptId}`}
-            className="mt-4 inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity"
+            className="btn-primary mt-4 inline-flex rounded-lg px-4 py-2 text-sm font-semibold"
           >
             Back to Attempt Review
           </Link>

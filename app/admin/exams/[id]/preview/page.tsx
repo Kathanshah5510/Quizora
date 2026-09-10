@@ -286,7 +286,7 @@ export default async function PreviewPage({ params, searchParams }: Props) {
           {hasNext ? (
             <Link
               href={`/admin/exams/${examId}/preview?q=${currentIndex + 1}`}
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity"
+              className="btn-primary rounded-lg px-4 py-2 text-sm font-semibold"
             >
               Next →
             </Link>

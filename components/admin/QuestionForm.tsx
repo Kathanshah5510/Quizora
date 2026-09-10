@@ -510,7 +510,7 @@ export default function QuestionForm({
       <button
         type="submit"
         disabled={isPending}
-        className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-opacity"
+        className="btn-primary rounded-lg px-5 py-2.5 text-sm font-semibold disabled:opacity-50"
       >
         {isPending ? "Saving…" : label}
       </button>

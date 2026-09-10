@@ -53,7 +53,7 @@ export default function RosterCsvUpload({ action }: Props) {
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-opacity"
+        className="btn-primary rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50"
       >
         {pending ? "Uploading…" : "Upload CSV"}
       </button>

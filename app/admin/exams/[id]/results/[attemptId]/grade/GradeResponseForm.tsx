@@ -79,7 +79,7 @@ export default function GradeResponseForm({
       <button
         type="submit"
         disabled={isPending}
-        className="rounded-lg bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
+        className="btn-primary rounded-lg px-4 py-1.5 text-sm font-semibold disabled:opacity-50"
       >
         {isPending ? "Saving…" : "Save"}
       </button>

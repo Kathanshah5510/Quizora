@@ -152,7 +152,7 @@ function LifecycleButton({
   children: React.ReactNode;
 }) {
   const cls = {
-    primary: "bg-primary text-primary-foreground hover:opacity-90",
+    primary: "btn-primary",
     secondary: "border border-border text-foreground hover:bg-muted",
     danger: "border border-destructive/30 text-destructive hover:bg-destructive/10",
   }[variant];

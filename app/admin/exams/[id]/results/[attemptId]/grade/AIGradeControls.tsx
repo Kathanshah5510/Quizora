@@ -191,7 +191,7 @@ export default function AIGradeControls({
               <button
                 onClick={() => handleAction("override")}
                 disabled={isPending}
-                className="rounded-md bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="btn-primary rounded-md px-3 py-1 text-xs font-semibold disabled:opacity-50"
               >
                 Apply Override
               </button>
