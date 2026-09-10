@@ -53,7 +53,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className={`grid grid-cols-1 gap-4 ${user?.role === "SUPER_ADMIN" ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
         <StatCard label="Courses" value={courseCount} href="/admin/courses" gradientIndex={0} />
         <StatCard label="Exams" value={examCount} href="/admin/exams" gradientIndex={1} />
         {user?.role === "SUPER_ADMIN" && (

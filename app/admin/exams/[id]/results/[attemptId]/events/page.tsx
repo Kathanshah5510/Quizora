@@ -196,9 +196,6 @@ export default async function EventTimelinePage({ params }: Props) {
                         <div className="text-right shrink-0">
                           <p className="text-xs font-mono">{elapsed(ts)}</p>
                           <p className="text-xs opacity-70">{ts.toLocaleTimeString("en-IN")}</p>
-                          {idx === 0 && (
-                            <p className="text-xs opacity-50">event {idx + 1}</p>
-                          )}
                         </div>
                       </div>
                     </div>

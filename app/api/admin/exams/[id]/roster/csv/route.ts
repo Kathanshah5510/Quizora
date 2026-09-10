@@ -4,6 +4,32 @@ import { requireAdmin } from "@/lib/auth";
 import { StudentIdentitySchema } from "@/lib/validation/student";
 import { parseRosterCSV } from "@/lib/utils";
 
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const user = await requireAdmin();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { id } = await params;
+  const exam = await db.exam.findUnique({ where: { id }, select: { slug: true } });
+  if (!exam) return NextResponse.json({ error: "Exam not found" }, { status: 404 });
+
+  const roster = await db.studentRoster.findMany({
+    where: { examId: id },
+    orderBy: { createdAt: "asc" },
+    select: { studentId: true, name: true, email: true, createdAt: true },
+  });
+
+  const lines = ["Student ID,Name,Email,Added", ...roster.map((s) =>
+    `${s.studentId},${JSON.stringify(s.name)},${JSON.stringify(s.email)},${s.createdAt.toISOString().slice(0, 10)}`
+  )];
+
+  return new NextResponse(lines.join("\r\n"), {
+    headers: {
+      "Content-Type": "text/csv",
+      "Content-Disposition": `attachment; filename="roster-${exam.slug}.csv"`,
+    },
+  });
+}
+
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await requireAdmin();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

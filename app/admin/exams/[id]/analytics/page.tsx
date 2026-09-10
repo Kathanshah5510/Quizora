@@ -94,6 +94,10 @@ export default async function AnalyticsPage({ params }: Props) {
 
   const avgScore = computeMean(scores);
   const medScore = computeMedian(scores);
+  const passRate =
+    gradedAttempts.length > 0 && maxPossible && maxPossible > 0
+      ? Math.round((scores.filter((s) => s / maxPossible >= 0.6).length / gradedAttempts.length) * 100)
+      : null;
 
   // Score histogram — 10 buckets (0–10%, 10–20%, …, 90–100%)
   const bucketCount = 10;
@@ -204,6 +208,11 @@ export default async function AnalyticsPage({ params }: Props) {
                   ? `${((avgScore / maxPossible) * 100).toFixed(1)}%`
                   : "—"
               }
+            />
+            <StatCard
+              label="Pass Rate (≥ 60%)"
+              value={passRate != null ? `${passRate}%` : "—"}
+              sub={passRate != null ? `${scores.filter((s) => maxPossible != null && maxPossible > 0 && s / maxPossible >= 0.6).length} of ${gradedAttempts.length}` : undefined}
             />
           </div>
         )}

@@ -9,7 +9,11 @@ import { updateCourseAction, deleteCourseAction } from "../actions";
 import DeleteButton from "@/components/admin/DeleteButton";
 import { formatDate } from "@/lib/utils";
 
-export const metadata: Metadata = { title: "Course" };
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const course = await db.course.findUnique({ where: { id }, select: { name: true, code: true } });
+  return { title: course ? `${course.code} — ${course.name}` : "Course" };
+}
 
 export default async function CourseDetailPage({
   params,
@@ -29,8 +33,6 @@ export default async function CourseDetailPage({
           id: true,
           title: true,
           status: true,
-          availabilityStart: true,
-          availabilityEnd: true,
           _count: { select: { questions: true } },
         },
       },

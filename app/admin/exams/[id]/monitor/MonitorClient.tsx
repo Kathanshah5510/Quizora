@@ -3,6 +3,12 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 
+interface RosterStudent {
+  studentId: string;
+  name: string;
+  email: string;
+}
+
 interface AttemptRow {
   id: string;
   studentId: string;
@@ -48,6 +54,7 @@ interface MonitorData {
   };
   attempts: AttemptRow[];
   recentEvents: RecentEvent[];
+  notStartedStudents: RosterStudent[];
   generatedAt: string;
 }
 
@@ -279,6 +286,37 @@ export default function MonitorClient({ examId, initialData }: Props) {
                           Events →
                         </Link>
                       </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Not started students */}
+      {data.notStartedStudents.length > 0 && (
+        <div className="space-y-2">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            Not Started ({data.notStartedStudents.length})
+          </h2>
+          <div className="rounded-xl border border-border bg-card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/40">
+                    <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Student</th>
+                    <th className="px-4 py-2.5 text-left font-medium text-muted-foreground hidden sm:table-cell">ID</th>
+                    <th className="px-4 py-2.5 text-left font-medium text-muted-foreground hidden md:table-cell">Email</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {data.notStartedStudents.map((s) => (
+                    <tr key={s.studentId} className="hover:bg-muted/20 transition-colors">
+                      <td className="px-4 py-2.5 font-medium text-foreground">{s.name}</td>
+                      <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground hidden sm:table-cell">{s.studentId}</td>
+                      <td className="px-4 py-2.5 text-xs text-muted-foreground hidden md:table-cell">{s.email}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -4,6 +4,7 @@ import { requireSuperAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import CreateAdminForm from "./CreateAdminForm";
 import DeleteAdminButton from "./DeleteAdminButton";
+import { formatDate } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Admins" };
 
@@ -34,11 +35,18 @@ export default async function UsersPage() {
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Email</th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Role</th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
+              <th className="px-4 py-3 text-left font-medium text-muted-foreground hidden md:table-cell">Joined</th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {admins.map((admin) => (
+            {admins.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                  No admin accounts yet.
+                </td>
+              </tr>
+            ) : admins.map((admin) => (
               <tr key={admin.id} className="hover:bg-muted/30 transition-colors">
                 <td className="px-4 py-3 font-medium text-foreground">{admin.name}</td>
                 <td className="px-4 py-3 text-muted-foreground">{admin.email}</td>
@@ -63,6 +71,9 @@ export default async function UsersPage() {
                   >
                     {admin.isActive ? "Active" : "Inactive"}
                   </span>
+                </td>
+                <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">
+                  {formatDate(admin.createdAt)}
                 </td>
                 <td className="px-4 py-3">
                   <DeleteAdminButton

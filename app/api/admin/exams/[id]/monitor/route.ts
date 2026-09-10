@@ -26,23 +26,33 @@ export async function GET(
   });
   if (!exam) return NextResponse.json({ error: "Exam not found" }, { status: 404 });
 
-  const attempts = await db.examAttempt.findMany({
-    where: { examId },
-    orderBy: { startedAt: "desc" },
-    select: {
-      id: true,
-      studentId: true,
-      studentName: true,
-      studentEmail: true,
-      status: true,
-      startedAt: true,
-      submittedAt: true,
-      lastActiveAt: true,
-      tabViolations: true,
-      submissionId: true,
-      ipAddress: true,
-    },
-  });
+  const [attempts, roster] = await Promise.all([
+    db.examAttempt.findMany({
+      where: { examId },
+      orderBy: { startedAt: "desc" },
+      select: {
+        id: true,
+        studentId: true,
+        studentName: true,
+        studentEmail: true,
+        status: true,
+        startedAt: true,
+        submittedAt: true,
+        lastActiveAt: true,
+        tabViolations: true,
+        submissionId: true,
+        ipAddress: true,
+      },
+    }),
+    db.studentRoster.findMany({
+      where: { examId },
+      select: { studentId: true, name: true, email: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
+
+  const attemptedIds = new Set(attempts.map((a) => a.studentId));
+  const notStartedRoster = roster.filter((s) => !attemptedIds.has(s.studentId));
 
   // Counts
   const inProgressCount = attempts.filter((a) => a.status === "IN_PROGRESS").length;
@@ -89,7 +99,7 @@ export async function GET(
       expired: expiredCount,
       abandoned: abandonedCount,
       flagged: flaggedCount,
-      notStarted: Math.max(0, exam._count.roster - attempts.length),
+      notStarted: notStartedRoster.length,
     },
     attempts: attempts.map((a) => ({
       id: a.id,
@@ -111,6 +121,11 @@ export async function GET(
       studentName: e.attempt.studentName,
       studentId: e.attempt.studentId,
       attemptId: e.attempt.id,
+    })),
+    notStartedStudents: notStartedRoster.map((s) => ({
+      studentId: s.studentId,
+      name: s.name,
+      email: s.email,
     })),
     generatedAt: new Date().toISOString(),
   });
