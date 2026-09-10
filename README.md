@@ -2,6 +2,8 @@
 
 A full-stack online exam platform built with Next.js 15. Designed for academic institutions — faculty create and configure exams, students take them with real-time security enforcement, and results are graded automatically with optional AI assistance.
 
+**Live:** [quizora-inky.vercel.app](https://quizora-inky.vercel.app)
+
 <!-- > Originally built for **IE403 — Machine Learning** at DA-IICT (Dhirubhai Ambani Institute of Information and Communication Technology). -->
 
 ---
@@ -145,7 +147,6 @@ Admin portal: [http://localhost:3000/admin](http://localhost:3000/admin)
 | Account | Email | Password |
 |---|---|---|
 | Super Admin | `superadmin@quizora.local` | `SuperAdmin@123` |
-| Admin | `admin@quizora.local` | `Admin@123456` |
 
 ---
 
