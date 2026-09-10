@@ -58,6 +58,33 @@ const REASON_MESSAGES: Record<string, string> = {
   NOT_RELEASED: "Your exam has been submitted. Results will be shared by your instructor.",
 };
 
+function QHeader({ slug, examTitle }: { slug: string; examTitle?: string }) {
+  return (
+    <header className="border-b border-border/60 bg-card/80 backdrop-blur-sm sticky top-0 z-10">
+      <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
+        <Link href={`/exam/${slug}`} className="flex items-center gap-2 shrink-0">
+          <div
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-xs"
+            style={{
+              background: "linear-gradient(135deg, oklch(0.51 0.22 264), oklch(0.55 0.22 295))",
+              boxShadow: "0 0 10px oklch(0.51 0.22 264 / 0.35)",
+            }}
+          >
+            Q
+          </div>
+          <span className="font-bold text-sm text-foreground">Quizora</span>
+        </Link>
+        {examTitle && (
+          <>
+            <span className="text-border">·</span>
+            <span className="text-sm text-muted-foreground truncate">{examTitle}</span>
+          </>
+        )}
+      </div>
+    </header>
+  );
+}
+
 export default function ResultPage() {
   const { slug } = useParams<{ slug: string }>();
   const [data, setData] = useState<ApiResponse | null>(null);
@@ -111,8 +138,9 @@ export default function ResultPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen px-4 py-12">
-        <div className="max-w-2xl mx-auto space-y-6 animate-pulse">
+      <div className="min-h-screen">
+        <QHeader slug={slug} />
+        <div className="max-w-2xl mx-auto px-4 py-12 space-y-6 animate-pulse">
           <div className="h-6 bg-muted rounded w-32 mx-auto" />
           <div className="rounded-2xl border border-border bg-card px-8 py-8 space-y-4">
             <div className="h-4 bg-muted rounded w-16 mx-auto" />
@@ -132,9 +160,12 @@ export default function ResultPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="rounded-xl border border-border bg-card px-8 py-10 text-center max-w-md">
-          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+      <div className="min-h-screen">
+        <QHeader slug={slug} />
+        <div className="flex items-center justify-center px-4 py-20">
+          <div className="rounded-xl border border-border bg-card px-8 py-10 text-center max-w-md">
+            <p className="text-sm text-destructive">{error}</p>
+          </div>
         </div>
       </div>
     );
@@ -144,13 +175,21 @@ export default function ResultPage() {
 
   if (!data.visible) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="rounded-xl border border-border bg-card px-8 py-10 text-center max-w-md space-y-3">
-          <div className="text-4xl">📋</div>
-          <h1 className="text-lg font-bold text-foreground">Exam Submitted</h1>
-          <p className="text-sm text-muted-foreground">
-            {REASON_MESSAGES[data.reason] ?? "Results are not yet available."}
-          </p>
+      <div className="min-h-screen">
+        <QHeader slug={slug} />
+        <div className="flex items-center justify-center px-4 py-20">
+          <div className="rounded-2xl border border-border bg-card px-8 py-12 text-center max-w-md space-y-4">
+            <div
+              className="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center text-2xl"
+              style={{ background: "linear-gradient(135deg, oklch(0.51 0.22 264 / 0.12), oklch(0.55 0.22 295 / 0.08))" }}
+            >
+              📋
+            </div>
+            <h1 className="text-lg font-bold text-foreground">Exam Submitted</h1>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {REASON_MESSAGES[data.reason] ?? "Results are not yet available."}
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -171,50 +210,70 @@ export default function ResultPage() {
     submittedAt,
   } = data;
 
+  const pctColor =
+    percentage == null
+      ? "text-foreground"
+      : percentage >= 60
+      ? "text-green-600 dark:text-green-400"
+      : percentage >= 40
+      ? "text-yellow-600 dark:text-yellow-400"
+      : "text-red-600 dark:text-red-400";
+
   return (
-    <div className="min-h-screen px-4 py-12">
-      <div className="max-w-2xl mx-auto space-y-6">
+    <div className="min-h-screen bg-background">
+      <QHeader slug={slug} examTitle={examTitle} />
+
+      <div className="max-w-2xl mx-auto px-4 py-10 space-y-6">
         {/* Header */}
-        <div className="text-center space-y-1">
-          <h1 className="text-xl font-bold text-foreground">Your Result</h1>
-          <p className="text-sm text-muted-foreground">{examTitle}</p>
+        <div className="text-center space-y-0.5">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Your Result</p>
+          <h1 className="text-xl font-bold text-foreground">{examTitle}</h1>
           <p className="text-xs text-muted-foreground font-mono">
             {studentName} · {studentId}
           </p>
         </div>
 
         {/* Score card */}
-        <div className="rounded-2xl border border-border bg-card px-8 py-8 text-center space-y-4">
+        <div
+          className="rounded-2xl border border-border/50 bg-card px-8 py-8 text-center space-y-5"
+          style={{ boxShadow: "0 4px 24px oklch(0 0 0 / 0.06)" }}
+        >
+          {/* Score */}
           <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Score</p>
-            <p className="text-4xl font-bold text-foreground mt-1">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Score</p>
+            <p className="text-5xl font-extrabold text-foreground" style={{ letterSpacing: "-0.03em" }}>
               {totalScore.toFixed(2)}
-              <span className="text-xl font-normal text-muted-foreground"> / {maxScore.toFixed(2)}</span>
+              <span className="text-2xl font-normal text-muted-foreground"> / {maxScore.toFixed(2)}</span>
             </p>
           </div>
 
+          {/* Percentage */}
           {percentage != null && (
             <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wide">Percentage</p>
-              <p className="text-3xl font-bold text-primary mt-1">{percentage.toFixed(1)}%</p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Percentage</p>
+              <p className={`text-3xl font-bold ${pctColor}`}>{percentage.toFixed(1)}%</p>
             </div>
           )}
 
+          {/* Partial grading warning */}
           {gradingStatus === "PARTIAL" && (
-            <p className="text-xs text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg px-3 py-2">
+            <p className="text-xs text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg px-4 py-2.5">
               Some questions are still being reviewed. Your final score may change.
             </p>
           )}
 
+          {/* Submission ID */}
           {submissionId && (
-            <div className="flex flex-col items-center gap-1">
-              <p className="text-xs text-muted-foreground font-mono">
-                Submission ID: {submissionId}
+            <div className="flex flex-col items-center gap-1.5 pt-1 border-t border-border">
+              <p className="text-xs text-muted-foreground">
+                Submission ID
               </p>
+              <p className="text-xs font-mono text-foreground">{submissionId}</p>
               <CopyButton text={submissionId} />
             </div>
           )}
 
+          {/* Submitted at */}
           {submittedAt && (
             <p className="text-xs text-muted-foreground">
               Submitted{" "}
@@ -228,7 +287,14 @@ export default function ResultPage() {
 
         {/* Correct answers note */}
         {!showAnswers && (
-          <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+          <div
+            className="rounded-xl border px-4 py-3 text-sm"
+            style={{
+              borderColor: "oklch(0.82 0.08 80 / 0.6)",
+              background: "oklch(0.97 0.02 80 / 0.4)",
+              color: "oklch(0.42 0.10 80)",
+            }}
+          >
             Correct answers will be visible after the exam availability window closes
             {availabilityEnd
               ? ` (${new Date(availabilityEnd).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}).`
@@ -260,15 +326,25 @@ export default function ResultPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-medium text-muted-foreground">Q{idx + 1}</span>
+                        <span className="text-xs font-semibold text-muted-foreground">Q{idx + 1}</span>
                         <span className="text-xs rounded bg-muted px-1.5 py-0.5 font-mono">{q.type}</span>
                         {q.gradingStatus === "pending" && (
                           <span className="text-xs rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 px-2 py-0.5">
-                            Pending grading
+                            Pending
+                          </span>
+                        )}
+                        {q.isCorrect === true && (
+                          <span className="text-xs rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5">
+                            Correct
+                          </span>
+                        )}
+                        {q.isCorrect === false && (
+                          <span className="text-xs rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-0.5">
+                            Incorrect
                           </span>
                         )}
                       </div>
-                      <p className="text-sm font-medium text-foreground mt-1">{q.text}</p>
+                      <p className="text-sm font-medium text-foreground mt-1.5 leading-snug">{q.text}</p>
                     </div>
                     <div className="shrink-0 text-right">
                       <p className="font-mono text-sm font-semibold text-foreground">
@@ -300,14 +376,22 @@ export default function ResultPage() {
                             <span className="text-xs text-muted-foreground w-4 shrink-0">
                               {selected ? "●" : "○"}
                             </span>
-                            <span className={`flex-1 ${selected ? "font-medium" : ""} ${correct ? "text-foreground" : "text-muted-foreground"}`}>
+                            <span
+                              className={`flex-1 ${selected ? "font-medium" : ""} ${
+                                correct ? "text-foreground" : "text-muted-foreground"
+                              }`}
+                            >
                               {opt.text}
                             </span>
                             {correct && (
-                              <span className="text-xs text-green-700 dark:text-green-400 font-medium shrink-0">correct</span>
+                              <span className="text-xs text-green-700 dark:text-green-400 font-medium shrink-0">
+                                correct
+                              </span>
                             )}
                             {selected && !correct && (
-                              <span className="text-xs text-red-700 dark:text-red-400 font-medium shrink-0">wrong</span>
+                              <span className="text-xs text-red-700 dark:text-red-400 font-medium shrink-0">
+                                wrong
+                              </span>
                             )}
                           </div>
                         );
@@ -318,10 +402,14 @@ export default function ResultPage() {
                   {/* NUMERICAL */}
                   {q.type === "NUMERICAL" && (
                     <div className="pl-2 space-y-1 text-sm">
-                      <div className="flex flex-wrap gap-4">
+                      <div className="flex flex-wrap gap-6">
                         <div>
                           <span className="text-xs text-muted-foreground">Your answer: </span>
-                          <span className={`font-mono font-medium ${q.numericalAnswer != null ? "text-foreground" : "text-muted-foreground"}`}>
+                          <span
+                            className={`font-mono font-medium ${
+                              q.numericalAnswer != null ? "text-foreground" : "text-muted-foreground"
+                            }`}
+                          >
                             {q.numericalAnswer != null ? q.numericalAnswer : "—"}
                           </span>
                         </div>
@@ -341,18 +429,24 @@ export default function ResultPage() {
                     <div className="pl-2 space-y-1 text-sm">
                       <div>
                         <span className="text-xs text-muted-foreground">Your answer: </span>
-                        <span className={`font-medium ${q.textAnswer ? "text-foreground" : "text-muted-foreground"}`}>
+                        <span
+                          className={`font-medium ${q.textAnswer ? "text-foreground" : "text-muted-foreground"}`}
+                        >
                           {q.textAnswer || "—"}
                         </span>
                       </div>
                       {q.expectedTextAnswer && (
                         <div>
                           <span className="text-xs text-muted-foreground">Expected: </span>
-                          <span className="font-medium text-green-700 dark:text-green-400">{q.expectedTextAnswer}</span>
+                          <span className="font-medium text-green-700 dark:text-green-400">
+                            {q.expectedTextAnswer}
+                          </span>
                         </div>
                       )}
                       {q.gradingStatus === "pending" && (
-                        <p className="text-xs text-yellow-700 dark:text-yellow-400">This question is pending manual grading.</p>
+                        <p className="text-xs text-yellow-700 dark:text-yellow-400">
+                          This question is pending manual grading.
+                        </p>
                       )}
                     </div>
                   )}
@@ -364,9 +458,9 @@ export default function ResultPage() {
 
         <Link
           href={`/exam/${slug}`}
-          className="block w-full text-center rounded-lg border border-border px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+          className="block w-full text-center rounded-xl border border-border px-4 py-3 text-sm font-medium text-foreground hover:bg-muted transition-colors"
         >
-          Back to Exam
+          ← Back to Exam
         </Link>
       </div>
     </div>
