@@ -150,6 +150,100 @@ export async function reopenExamAction(examId: string): Promise<LifecycleResult>
   return { success: true };
 }
 
+export async function duplicateExamAction(examId: string): Promise<LifecycleResult & { newId?: string }> {
+  const user = await requireAdmin();
+  if (!user) return { error: "Unauthorized" };
+
+  const source = await db.exam.findUnique({
+    where: { id: examId },
+    include: {
+      questions: {
+        where: { isDeleted: false },
+        orderBy: { displayOrder: "asc" },
+        include: { options: { orderBy: { displayOrder: "asc" } } },
+      },
+    },
+  });
+  if (!source || source.isDeleted) return { error: "Exam not found" };
+
+  const slug = generateExamSlug(`copy of ${source.title}`);
+
+  const newExam = await db.exam.create({
+    data: {
+      courseId: source.courseId,
+      title: `Copy of ${source.title}`,
+      description: source.description,
+      instructorName: source.instructorName,
+      taNames: source.taNames,
+      slug,
+      status: "DRAFT",
+      availabilityStart: null,
+      availabilityEnd: null,
+      durationMinutes: source.durationMinutes,
+      timerMode: source.timerMode,
+      perQuestionSeconds: source.perQuestionSeconds,
+      attemptsAllowed: source.attemptsAllowed,
+      randomizeQuestions: source.randomizeQuestions,
+      randomizeOptions: source.randomizeOptions,
+      allowBacktracking: source.allowBacktracking,
+      allowExternalStudents: source.allowExternalStudents,
+      continueAfterAvailability: source.continueAfterAvailability,
+      fullScreenRequired: source.fullScreenRequired,
+      reconnectGraceSeconds: source.reconnectGraceSeconds,
+      maxTabViolations: source.maxTabViolations,
+      defaultMarks: source.defaultMarks,
+      defaultNegativeMarks: source.defaultNegativeMarks,
+      msqGradingPolicy: source.msqGradingPolicy,
+      numericalTolerance: source.numericalTolerance,
+      textGradingMode: source.textGradingMode,
+      resultRelease: source.resultRelease,
+      createdById: user.id,
+    },
+  });
+
+  if (source.questions.length > 0) {
+    await db.question.createMany({
+      data: source.questions.map((q) => ({
+        examId: newExam.id,
+        type: q.type,
+        text: q.text,
+        mediaAssetId: q.mediaAssetId,
+        marks: q.marks,
+        negativeMarks: q.negativeMarks,
+        numericalAnswer: q.numericalAnswer,
+        numericalTolerance: q.numericalTolerance,
+        textAnswer: q.textAnswer,
+        displayOrder: q.displayOrder,
+      })),
+    });
+
+    const newQuestions = await db.question.findMany({
+      where: { examId: newExam.id },
+      orderBy: { displayOrder: "asc" },
+      select: { id: true, displayOrder: true },
+    });
+
+    const orderToNewId = new Map(newQuestions.map((q) => [q.displayOrder, q.id]));
+
+    const optionData = source.questions.flatMap((q) =>
+      q.options.map((o) => ({
+        questionId: orderToNewId.get(q.displayOrder)!,
+        text: o.text,
+        mediaAssetId: o.mediaAssetId,
+        isCorrect: o.isCorrect,
+        displayOrder: o.displayOrder,
+      }))
+    );
+
+    if (optionData.length > 0) {
+      await db.questionOption.createMany({ data: optionData });
+    }
+  }
+
+  revalidatePath("/admin/exams");
+  return { success: true, newId: newExam.id };
+}
+
 // ── Settings update ───────────────────────────────────────────────────────────
 
 export async function updateExamAction(

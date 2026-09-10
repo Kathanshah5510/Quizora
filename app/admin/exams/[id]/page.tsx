@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import ExamForm from "@/components/admin/ExamForm";
 import ExamLifecycle from "./ExamLifecycle";
 import CopySlugButton from "./CopySlugButton";
+import DuplicateExamButton from "./DuplicateExamButton";
 import { updateExamAction, deleteExamAction } from "../actions";
 import DeleteButton from "@/components/admin/DeleteButton";
 
@@ -52,12 +53,15 @@ export default async function ExamDetailPage({
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <Link
-            href="/admin/exams"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
-          >
-            ← Back to Exams
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/admin/exams"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+            >
+              ← Back to Exams
+            </Link>
+            <DuplicateExamButton examId={id} />
+          </div>
           <div className="flex flex-wrap items-center gap-3 mt-2">
             <h1 className="text-xl font-bold text-foreground leading-snug">{exam.title}</h1>
             <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${s.cls}`}>
