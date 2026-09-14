@@ -141,7 +141,13 @@ export default function ResultPage() {
     return (
       <div className="min-h-screen">
         <QHeader slug={slug} />
-        <div className="max-w-2xl mx-auto px-4 py-12 space-y-6 animate-pulse">
+        <div className="max-w-2xl mx-auto px-4 py-12 space-y-6">
+          <div className="flex flex-col items-center gap-3 py-2" role="status" aria-live="polite">
+            <div className="spinner" aria-hidden="true" />
+            <p className="text-sm text-muted-foreground">Loading your result…</p>
+          </div>
+        </div>
+        <div className="max-w-2xl mx-auto px-4 pb-12 space-y-6 animate-pulse" aria-hidden="true">
           <div className="h-6 bg-muted rounded w-32 mx-auto" />
           <div className="rounded-2xl border border-border bg-card px-8 py-8 space-y-4">
             <div className="h-4 bg-muted rounded w-16 mx-auto" />

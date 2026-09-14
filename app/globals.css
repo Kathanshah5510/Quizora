@@ -111,6 +111,45 @@ body {
 }
 .btn-primary:disabled { opacity: 0.55; }
 
+/* ── Loading spinner ──
+   Conic-gradient ring, masked to a hollow circle. Pure CSS: no JS library and
+   no external asset, which the app's CSP (script-src/connect-src 'self') requires. */
+.spinner {
+  --spinner-size: 2.5rem;
+  --spinner-thickness: 3px;
+  width: var(--spinner-size);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 8%,
+    oklch(0.51 0.22 264),
+    oklch(0.55 0.22 295),
+    oklch(0.68 0.20 320)
+  );
+  -webkit-mask: radial-gradient(farthest-side, #0000 calc(100% - var(--spinner-thickness)), #000 0);
+  mask: radial-gradient(farthest-side, #0000 calc(100% - var(--spinner-thickness)), #000 0);
+  animation: spinner-rotate 0.9s infinite linear;
+}
+
+/* Sits on a text line and inherits the parent's colour, so it reads correctly
+   on a gradient button as well as on plain text. */
+.spinner-inline {
+  --spinner-size: 0.95em;
+  --spinner-thickness: 2px;
+  display: inline-block;
+  vertical-align: -0.12em;
+  background: conic-gradient(from 0deg, transparent 12%, currentColor);
+}
+
+@keyframes spinner-rotate {
+  to { transform: rotate(1turn); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation-duration: 2.4s; }
+}
+
 .sidebar-link {
   transition: background 0.15s ease, color 0.15s ease;
   color: oklch(0.62 0.06 264);

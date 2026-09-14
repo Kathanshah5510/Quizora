@@ -57,13 +57,19 @@ function formatTime(seconds: number): string {
 
 function LoadingSkeleton() {
   return (
-    <div className="animate-pulse space-y-4 p-6">
-      <div className="h-4 bg-muted rounded w-3/4" />
-      <div className="h-4 bg-muted rounded w-1/2" />
-      <div className="space-y-2 mt-6">
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="h-10 bg-muted rounded" />
-        ))}
+    <div className="p-6 space-y-6" role="status" aria-live="polite">
+      <div className="flex flex-col items-center justify-center gap-3 py-4">
+        <div className="spinner" aria-hidden="true" />
+        <p className="text-sm text-muted-foreground">Loading question…</p>
+      </div>
+      <div className="animate-pulse space-y-4" aria-hidden="true">
+        <div className="h-4 bg-muted rounded w-3/4" />
+        <div className="h-4 bg-muted rounded w-1/2" />
+        <div className="space-y-2 mt-6">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="h-10 bg-muted rounded" />
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -234,6 +240,7 @@ function ExamSessionInner() {
   const [maxTabViolations, setMaxTabViolations] = useState(2);
   const [violationWarning, setViolationWarning] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -465,16 +472,21 @@ function ExamSessionInner() {
 
   // Manual submit
   const handleSubmit = async () => {
-    if (submitted || !sessionToken) return;
-    const res = await fetch(`/api/exam/${slug}/submit`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ attemptId, sessionToken }),
-    });
-    const data = await res.json();
-    if (res.ok) {
-      setSubmitted(true);
-      setSubmissionId(data.submissionId);
+    if (submitted || submitting || !sessionToken) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/exam/${slug}/submit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ attemptId, sessionToken }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSubmitted(true);
+        setSubmissionId(data.submissionId);
+      }
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -569,16 +581,25 @@ function ExamSessionInner() {
               <button
                 type="button"
                 onClick={() => setShowSubmitConfirm(false)}
-                className="flex-1 rounded-lg border border-border px-4 py-2.5 text-sm font-medium hover:bg-muted transition-colors"
+                disabled={submitting}
+                className="flex-1 rounded-lg border border-border px-4 py-2.5 text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 type="button"
-                onClick={async () => { setShowSubmitConfirm(false); await handleSubmit(); }}
-                className="flex-1 btn-primary rounded-lg px-4 py-2.5 text-sm font-semibold"
+                onClick={handleSubmit}
+                disabled={submitting}
+                className="flex-1 btn-primary rounded-lg px-4 py-2.5 text-sm font-semibold inline-flex items-center justify-center gap-2"
               >
-                Submit Now
+                {submitting ? (
+                  <>
+                    <span className="spinner spinner-inline" aria-hidden="true" />
+                    Submitting…
+                  </>
+                ) : (
+                  "Submit Now"
+                )}
               </button>
             </div>
           </div>
