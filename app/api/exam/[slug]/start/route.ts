@@ -67,28 +67,58 @@ export async function POST(
     );
   }
 
-  // Load exam
-  const exam = await db.exam.findUnique({
-    where: { slug },
-    select: {
-      id: true,
-      status: true,
-      availabilityStart: true,
-      availabilityEnd: true,
-      continueAfterAvailability: true,
-      allowExternalStudents: true,
-      attemptsAllowed: true,
-      durationMinutes: true,
-      timerMode: true,
-      perQuestionSeconds: true,
-      randomizeQuestions: true,
-      randomizeOptions: true,
-      allowBacktracking: true,
-      reconnectGraceSeconds: true,
-      maxTabViolations: true,
-      isDeleted: true,
-    },
-  });
+  // All three lookups key off the slug rather than the exam's id, so they run
+  // as one round trip instead of four sequential ones. Round trips dominate the
+  // cost of this route whenever the database is a network hop from the function.
+  const [exam, rosterEntry, existingAttempts] = await Promise.all([
+    db.exam.findUnique({
+      where: { slug },
+      select: {
+        id: true,
+        status: true,
+        availabilityStart: true,
+        availabilityEnd: true,
+        continueAfterAvailability: true,
+        allowExternalStudents: true,
+        attemptsAllowed: true,
+        durationMinutes: true,
+        timerMode: true,
+        perQuestionSeconds: true,
+        randomizeQuestions: true,
+        randomizeOptions: true,
+        allowBacktracking: true,
+        reconnectGraceSeconds: true,
+        maxTabViolations: true,
+        isDeleted: true,
+        questions: {
+          where: { isDeleted: false },
+          orderBy: { displayOrder: "asc" },
+          select: {
+            id: true,
+            displayOrder: true,
+            options: { select: { id: true }, orderBy: { displayOrder: "asc" } },
+          },
+        },
+      },
+    }),
+    db.studentRoster.findFirst({
+      where: { exam: { slug }, studentId },
+      select: { id: true },
+    }),
+    db.examAttempt.findMany({
+      where: { exam: { slug }, studentId },
+      orderBy: { attemptNumber: "asc" },
+      select: {
+        id: true,
+        status: true,
+        attemptNumber: true,
+        expiresAt: true,
+        lastActiveAt: true,
+        deviceFingerprint: true,
+        sessionToken: true,
+      },
+    }),
+  ]);
 
   if (!exam || exam.isDeleted) {
     return NextResponse.json({ error: "Exam not found" }, { status: 404 });
@@ -112,39 +142,20 @@ export async function POST(
     return NextResponse.json({ error: "Exam is not currently accessible", code: access }, { status: 403 });
   }
 
-  // Roster check
-  if (!exam.allowExternalStudents) {
-    const rosterEntry = await db.studentRoster.findUnique({
-      where: { examId_studentId: { examId: exam.id, studentId } },
-    });
-    if (!rosterEntry) {
-      return NextResponse.json(
-        { error: "You are not registered for this exam", code: "NOT_ON_ROSTER" },
-        { status: 403 }
-      );
-    }
+  // Roster check — the lookup above ran unconditionally so it could be
+  // parallelised; the result is only consulted when the exam is roster-gated.
+  if (!exam.allowExternalStudents && !rosterEntry) {
+    return NextResponse.json(
+      { error: "You are not registered for this exam", code: "NOT_ON_ROSTER" },
+      { status: 403 }
+    );
   }
 
-  // Existing attempts for this student
-  const existingAttempts = await db.examAttempt.findMany({
-    where: { examId: exam.id, studentId },
-    select: { id: true, status: true, attemptNumber: true, expiresAt: true },
-    orderBy: { attemptNumber: "asc" },
-  });
-
-  // Device locking: if an in-progress attempt exists, enforce one-device policy
-  // Use exam-configured grace period (default 30s); admin can adjust per-exam
+  // Device locking: if an in-progress attempt exists, enforce one-device policy.
+  // Uses the exam-configured grace period (default 30s).
   const RECONNECT_GRACE_SECONDS = exam.reconnectGraceSeconds;
-  const inProgressFull = await db.examAttempt.findFirst({
-    where: { examId: exam.id, studentId, status: "IN_PROGRESS" },
-    select: {
-      id: true,
-      expiresAt: true,
-      lastActiveAt: true,
-      deviceFingerprint: true,
-      sessionToken: true, // Used to verify same-browser reconnect via resumeToken
-    },
-  });
+  // Already present in existingAttempts — no separate query needed.
+  const inProgressFull = existingAttempts.find((a) => a.status === "IN_PROGRESS") ?? null;
 
   if (inProgressFull) {
     const secondsSinceActive =
@@ -176,6 +187,8 @@ export async function POST(
       deviceFingerprint !== inProgressFull.deviceFingerprint;
 
     const sessionToken = crypto.randomUUID();
+    // The event is written as a nested create so the update and the log are a
+    // single round trip.
     const updated = await db.examAttempt.update({
       where: { id: inProgressFull.id },
       data: {
@@ -185,15 +198,12 @@ export async function POST(
         deviceFingerprint: deviceFingerprint ?? inProgressFull.deviceFingerprint,
         ipAddress: ip,
         userAgent,
-      },
-    });
-
-    // Log reconnect / device-change event
-    await db.examEvent.create({
-      data: {
-        attemptId: inProgressFull.id,
-        eventType: deviceChanged ? "DEVICE_CHANGED" : "RECONNECTED",
-        metadata: { ip, userAgent },
+        events: {
+          create: {
+            eventType: deviceChanged ? "DEVICE_CHANGED" : "RECONNECTED",
+            metadata: { ip, userAgent },
+          },
+        },
       },
     });
 
@@ -217,19 +227,9 @@ export async function POST(
 
   const attemptNumber = completedCount + 1;
 
-  // Load questions for randomization (never send correct answers)
-  const questions = await db.question.findMany({
-    where: { examId: exam.id, isDeleted: false },
-    select: {
-      id: true,
-      displayOrder: true,
-      options: { select: { id: true }, orderBy: { displayOrder: "asc" } },
-    },
-    orderBy: { displayOrder: "asc" },
-  });
-
+  // Questions came back with the exam above (ids only — never correct answers).
   const { questionOrder, optionOrders } = buildRandomizedOrders(
-    questions.map((q) => ({
+    exam.questions.map((q) => ({
       id: q.id,
       displayOrder: q.displayOrder,
       optionIds: q.options.map((o: { id: string }) => o.id),
@@ -266,6 +266,8 @@ export async function POST(
         maxTabViolationsSnapshot: exam.maxTabViolations,
         ipAddress: ip,
         userAgent,
+        // Nested so the attempt and its STARTED event are one round trip.
+        events: { create: { eventType: "STARTED", metadata: { ip, userAgent } } },
       },
     });
   } catch (err: unknown) {
@@ -282,15 +284,6 @@ export async function POST(
     }
     throw err;
   }
-
-  // Log STARTED event
-  await db.examEvent.create({
-    data: {
-      attemptId: attempt.id,
-      eventType: "STARTED",
-      metadata: { ip, userAgent },
-    },
-  });
 
   return NextResponse.json(
     {
