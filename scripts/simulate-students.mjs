@@ -25,6 +25,8 @@ const STUDENTS = Number(N_ARG ?? 200);
 const RAMP_S = Number(RAMP_ARG ?? 30);
 const THINK_MS = Number(THINK_ARG ?? 2000);
 
+const RUN_BASE = 920000000 + (Math.floor(Date.now() / 1000) % 79000) * 1000;
+
 const isTls = BASE.protocol === "https:";
 const mod = isTls ? https : http;
 const agent = new mod.Agent({ keepAlive: true, maxSockets: 256, maxFreeSockets: 128 });
@@ -75,8 +77,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ─── one simulated student ────────────────────────────────────────────────────
 async function runStudent(i) {
-  // 9-digit id; email must be exactly <id>@dau.ac.in per studentIdentity rules
-  const studentId = String(900000000 + i);
+  // 9-digit id; email must be exactly <id>@dau.ac.in per studentIdentity rules.
+  // A fresh range per run, so leftover attempts from earlier runs are never reused.
+  const studentId = String(RUN_BASE + i);
   const email = `${studentId}@dau.ac.in`;
 
   const started = await request("POST", `/api/exam/${SLUG}/start`, {
@@ -87,8 +90,9 @@ async function runStudent(i) {
     return { ok: false, stage: "start", detail: started.json?.error ?? started.err ?? started.raw };
   }
 
-  const { attemptId, sessionToken } = started.json ?? {};
+  const { attemptId, sessionToken, isReconnect } = started.json ?? {};
   if (!attemptId || !sessionToken) return { ok: false, stage: "start", detail: "no attemptId/sessionToken" };
+  if (isReconnect) return { ok: false, stage: "start", detail: "reconnected to an existing attempt (not a fresh start)" };
 
   let index = 0;
   let total = null;
@@ -100,9 +104,7 @@ async function runStudent(i) {
     });
     record("question", q.ms, q.status, q.err);
     if (q.status !== 200) {
-      // Exam already over (expired/submitted) is a valid terminal state, not a failure.
-      if (q.json?.status === "EXPIRED" || q.json?.status === "SUBMITTED") break;
-      return { ok: false, stage: `question[${index}]`, detail: q.json?.error ?? q.err ?? q.raw };
+      return { ok: false, stage: `question[${index}]`, detail: q.json?.error ?? q.json?.status ?? q.err ?? q.raw };
     }
     total ??= q.json.totalQuestions;
 
@@ -127,7 +129,11 @@ async function runStudent(i) {
   record("submit", sub.ms, sub.status, sub.err);
   if (sub.status !== 200) return { ok: false, stage: "submit", detail: sub.json?.error ?? sub.err ?? sub.raw };
 
-  return { ok: true, answered, submissionId: sub.json?.submissionId ?? null };
+  // Only a student who answered every question and received a submission id counts.
+  const submissionId = sub.json?.submissionId ?? null;
+  if (!submissionId) return { ok: false, stage: "submit", detail: "no submissionId returned" };
+  if (answered < (total ?? 0)) return { ok: false, stage: "answer", detail: `answered ${answered}/${total}` };
+  return { ok: true, answered, submissionId };
 }
 
 // ─── report ───────────────────────────────────────────────────────────────────
