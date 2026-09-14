@@ -4,6 +4,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { checkExamAccess, ExamAccessStatus } from "@/lib/exam/examAccess";
 import ThemeToggle from "@/components/ThemeToggle";
+import { APP_TIME_ZONE } from "@/lib/datetime";
 
 export async function generateMetadata({
   params,
@@ -33,6 +34,7 @@ function formatDuration(minutes: number): string {
 
 function formatDateTime(dt: Date): string {
   return dt.toLocaleString("en-IN", {
+    timeZone: APP_TIME_ZONE,
     dateStyle: "medium",
     timeStyle: "short",
   });

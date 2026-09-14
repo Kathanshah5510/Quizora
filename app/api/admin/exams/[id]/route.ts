@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { UpdateExamSchema } from "@/lib/validation/exam";
+import { datetimeLocalToUtc } from "@/lib/datetime";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await requireAdmin();
@@ -52,10 +53,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       ...(data.taNames !== undefined && { taNames: data.taNames }),
       ...(data.slug !== undefined && { slug: data.slug }),
       ...(data.availabilityStart !== undefined && {
-        availabilityStart: data.availabilityStart ? new Date(data.availabilityStart) : null,
+        availabilityStart: datetimeLocalToUtc(data.availabilityStart),
       }),
       ...(data.availabilityEnd !== undefined && {
-        availabilityEnd: data.availabilityEnd ? new Date(data.availabilityEnd) : null,
+        availabilityEnd: datetimeLocalToUtc(data.availabilityEnd),
       }),
       ...(data.durationMinutes !== undefined && { durationMinutes: data.durationMinutes }),
       ...(data.timerMode !== undefined && { timerMode: data.timerMode }),

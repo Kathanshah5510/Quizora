@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { datetimeLocalToUtc } from "@/lib/datetime";
 
 export const CreateExamSchema = z
   .object({
@@ -57,7 +58,7 @@ export const CreateExamSchema = z
   .refine(
     (data) => {
       if (data.availabilityStart && data.availabilityEnd) {
-        return new Date(data.availabilityStart) < new Date(data.availabilityEnd);
+        return datetimeLocalToUtc(data.availabilityStart)! < datetimeLocalToUtc(data.availabilityEnd)!;
       }
       return true;
     },
@@ -96,7 +97,7 @@ export const UpdateExamSchema = z
   .refine(
     (data) => {
       if (data.availabilityStart && data.availabilityEnd) {
-        return new Date(data.availabilityStart) < new Date(data.availabilityEnd);
+        return datetimeLocalToUtc(data.availabilityStart)! < datetimeLocalToUtc(data.availabilityEnd)!;
       }
       return true;
     },

@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
+import { APP_TIME_ZONE } from "./datetime";
 
 export function parseRosterCSV(text: string): Array<{
   studentId: string;
@@ -38,6 +39,7 @@ export function generateExamSlug(title: string): string {
 export function formatDate(date: Date | string | null | undefined): string {
   if (!date) return "—";
   return new Date(date).toLocaleDateString("en-IN", {
+    timeZone: APP_TIME_ZONE,
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -47,6 +49,7 @@ export function formatDate(date: Date | string | null | undefined): string {
 export function formatDateTime(date: Date | string | null | undefined): string {
   if (!date) return "—";
   return new Date(date).toLocaleString("en-IN", {
+    timeZone: APP_TIME_ZONE,
     year: "numeric",
     month: "short",
     day: "numeric",

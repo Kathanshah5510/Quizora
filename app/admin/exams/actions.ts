@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { CreateExamSchema, UpdateExamSchema, parseExamFormData } from "@/lib/validation/exam";
 import { generateExamSlug } from "@/lib/utils";
+import { datetimeLocalToUtc } from "@/lib/datetime";
 
 export type ExamActionState = { error: string; success: boolean };
 
@@ -53,8 +54,8 @@ export async function createExamAction(
       numericalTolerance: parsed.data.numericalTolerance ?? null,
       textGradingMode: parsed.data.textGradingMode,
       resultRelease: parsed.data.resultRelease,
-      availabilityStart: parsed.data.availabilityStart ? new Date(parsed.data.availabilityStart) : null,
-      availabilityEnd: parsed.data.availabilityEnd ? new Date(parsed.data.availabilityEnd) : null,
+      availabilityStart: datetimeLocalToUtc(parsed.data.availabilityStart),
+      availabilityEnd: datetimeLocalToUtc(parsed.data.availabilityEnd),
       createdById: user.id,
     },
   });
@@ -285,8 +286,8 @@ export async function updateExamAction(
       ...(data.instructorName !== undefined && { instructorName: data.instructorName }),
       ...(data.taNames !== undefined && { taNames: data.taNames }),
       ...(data.slug !== undefined && { slug: data.slug }),
-      availabilityStart: data.availabilityStart ? new Date(data.availabilityStart) : null,
-      availabilityEnd: data.availabilityEnd ? new Date(data.availabilityEnd) : null,
+      availabilityStart: datetimeLocalToUtc(data.availabilityStart),
+      availabilityEnd: datetimeLocalToUtc(data.availabilityEnd),
       ...(data.durationMinutes !== undefined && { durationMinutes: data.durationMinutes }),
       ...(data.timerMode !== undefined && { timerMode: data.timerMode }),
       perQuestionSeconds: data.perQuestionSeconds ?? null,

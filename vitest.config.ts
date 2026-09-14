@@ -9,6 +9,9 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./tests/setup.ts"],
     exclude: ["**/node_modules/**", "**/tests/e2e/**"],
+    // Match the deployed server so timezone bugs surface in tests rather than
+    // being masked by a developer machine that happens to run in IST.
+    env: { TZ: "UTC" },
   },
   resolve: {
     alias: {

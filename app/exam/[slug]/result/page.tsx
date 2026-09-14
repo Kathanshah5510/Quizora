@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import CopyButton from "@/components/CopyButton";
+import { APP_TIME_ZONE } from "@/lib/datetime";
 
 interface QuestionResult {
   questionId: string;
@@ -298,6 +299,7 @@ export default function ResultPage() {
             <p className="text-xs text-muted-foreground">
               Submitted{" "}
               {new Date(submittedAt).toLocaleString("en-IN", {
+                timeZone: APP_TIME_ZONE,
                 dateStyle: "medium",
                 timeStyle: "short",
               })}
@@ -317,7 +319,7 @@ export default function ResultPage() {
           >
             Correct answers will be visible after the exam availability window closes
             {availabilityEnd
-              ? ` (${new Date(availabilityEnd).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}).`
+              ? ` (${new Date(availabilityEnd).toLocaleString("en-IN", { timeZone: APP_TIME_ZONE, dateStyle: "medium", timeStyle: "short" })}).`
               : "."}
           </div>
         )}

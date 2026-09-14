@@ -1,3 +1,5 @@
+import { formatDateTime } from "@/lib/utils";
+
 export type ExamForLifecycle = {
   status: string;
   title: string;
@@ -60,7 +62,7 @@ export function describeAvailability(
   }
   if (availabilityStart && availabilityStart > now) {
     return {
-      message: `Published. Opens ${availabilityStart.toLocaleString("en-IN")}.`,
+      message: `Published. Opens ${formatDateTime(availabilityStart)}.`,
       warning: false,
     };
   }

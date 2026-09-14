@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { CreateExamSchema } from "@/lib/validation/exam";
 import { generateExamSlug } from "@/lib/utils";
+import { datetimeLocalToUtc } from "@/lib/datetime";
 
 export async function GET() {
   const user = await requireAdmin();
@@ -61,8 +62,8 @@ export async function POST(req: NextRequest) {
       numericalTolerance: parsed.data.numericalTolerance ?? null,
       textGradingMode: parsed.data.textGradingMode,
       resultRelease: parsed.data.resultRelease,
-      availabilityStart: parsed.data.availabilityStart ? new Date(parsed.data.availabilityStart) : null,
-      availabilityEnd: parsed.data.availabilityEnd ? new Date(parsed.data.availabilityEnd) : null,
+      availabilityStart: datetimeLocalToUtc(parsed.data.availabilityStart),
+      availabilityEnd: datetimeLocalToUtc(parsed.data.availabilityEnd),
       createdById: user.id,
     },
   });

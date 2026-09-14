@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import type { ExamActionState } from "@/app/admin/exams/actions";
+import { utcToDatetimeLocal } from "@/lib/datetime";
 
 type Course = { id: string; name: string; code: string };
 
@@ -43,14 +44,6 @@ type Props = {
 };
 
 const initialState: ExamActionState = { error: "", success: false };
-
-function toDatetimeLocal(val: string | null | undefined): string {
-  if (!val) return "";
-  const d = new Date(val);
-  if (isNaN(d.getTime())) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
 
 export default function ExamForm({ action, courses, defaultValues, isEdit = false, submitLabel = "Save" }: Props) {
   const [state, formAction, pending] = useActionState(action, initialState);
@@ -175,7 +168,7 @@ export default function ExamForm({ action, courses, defaultValues, isEdit = fals
               id="availabilityStart"
               name="availabilityStart"
               type="datetime-local"
-              defaultValue={toDatetimeLocal(defaultValues?.availabilityStart)}
+              defaultValue={utcToDatetimeLocal(defaultValues?.availabilityStart)}
               disabled={pending}
               className={inputCls}
             />
@@ -186,7 +179,7 @@ export default function ExamForm({ action, courses, defaultValues, isEdit = fals
               id="availabilityEnd"
               name="availabilityEnd"
               type="datetime-local"
-              defaultValue={toDatetimeLocal(defaultValues?.availabilityEnd)}
+              defaultValue={utcToDatetimeLocal(defaultValues?.availabilityEnd)}
               disabled={pending}
               className={inputCls}
             />

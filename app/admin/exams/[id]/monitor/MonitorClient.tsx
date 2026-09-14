@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { APP_TIME_ZONE } from "@/lib/datetime";
 
 interface RosterStudent {
   studentId: string;
@@ -98,7 +99,7 @@ function timeSince(iso: string): string {
 }
 
 function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  return new Date(iso).toLocaleTimeString("en-IN", { timeZone: APP_TIME_ZONE, hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
 interface Props {
@@ -490,7 +491,7 @@ export default function MonitorClient({ examId, initialData }: Props) {
             })}
           </div>
           <p className="text-xs text-muted-foreground text-right">
-            Last updated: {lastRefresh.toLocaleTimeString("en-IN")}
+            Last updated: {lastRefresh.toLocaleTimeString("en-IN", { timeZone: APP_TIME_ZONE })}
           </p>
         </div>
       )}

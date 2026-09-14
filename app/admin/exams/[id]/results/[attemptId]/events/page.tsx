@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { APP_TIME_ZONE } from "@/lib/datetime";
 
 export const metadata: Metadata = { title: "Event Timeline" };
 
@@ -65,7 +66,7 @@ export default async function EventTimelinePage({ params }: Props) {
     : null;
 
   function fmt(d: Date) {
-    return d.toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "medium" });
+    return d.toLocaleString("en-IN", { timeZone: APP_TIME_ZONE, dateStyle: "medium", timeStyle: "medium" });
   }
 
   function elapsed(d: Date) {
@@ -195,7 +196,7 @@ export default async function EventTimelinePage({ params }: Props) {
                         </div>
                         <div className="text-right shrink-0">
                           <p className="text-xs font-mono">{elapsed(ts)}</p>
-                          <p className="text-xs opacity-70">{ts.toLocaleTimeString("en-IN")}</p>
+                          <p className="text-xs opacity-70">{ts.toLocaleTimeString("en-IN", { timeZone: APP_TIME_ZONE })}</p>
                         </div>
                       </div>
                     </div>
