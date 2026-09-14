@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { logoutAction } from "@/app/(auth)/login/actions";
 import ThemeToggle from "@/components/ThemeToggle";
 import MobileMenuButton from "@/components/admin/MobileMenuButton";
+import { Pending } from "@/components/Spinner";
 
 interface Props {
   user: { name: string; email: string; role: "SUPER_ADMIN" | "ADMIN" };
@@ -34,7 +35,7 @@ export default function AdminHeader({ user }: Props) {
           disabled={pending}
           className="btn-primary rounded-lg px-3 py-1.5 text-sm font-semibold"
         >
-          {pending ? "Signing out…" : "Sign out"}
+          {pending ? <Pending>Signing out…</Pending> : "Sign out"}
         </button>
       </div>
     </header>

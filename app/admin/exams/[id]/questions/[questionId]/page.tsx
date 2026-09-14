@@ -5,8 +5,9 @@ import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import dynamic from "next/dynamic";
 import type { QuestionType } from "@/components/admin/QuestionForm";
+import { PageSpinner } from "@/components/Spinner";
 const QuestionForm = dynamic(() => import("@/components/admin/QuestionForm"), {
-  loading: () => <div className="animate-pulse rounded-xl bg-muted h-64" />,
+  loading: () => <PageSpinner label="Loading form…" />,
 });
 import QuestionDeleteButton from "./QuestionDeleteButton";
 import { updateQuestionAction, deleteQuestionAction } from "../actions";

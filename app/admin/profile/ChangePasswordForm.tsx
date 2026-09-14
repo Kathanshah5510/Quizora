@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import PasswordInput from "@/components/PasswordInput";
+import { Pending } from "@/components/Spinner";
 
 export default function ChangePasswordForm() {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -81,7 +82,7 @@ export default function ChangePasswordForm() {
         disabled={loading}
         className="btn-primary rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50"
       >
-        {loading ? "Changing…" : "Change Password"}
+        {loading ? <Pending>Changing…</Pending> : "Change Password"}
       </button>
     </form>
   );

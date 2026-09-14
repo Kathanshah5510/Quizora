@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { duplicateExamAction } from "../actions";
+import { Pending } from "@/components/Spinner";
 
 export default function DuplicateExamButton({ examId }: { examId: string }) {
   const [isPending, startTransition] = useTransition();
@@ -27,7 +28,7 @@ export default function DuplicateExamButton({ examId }: { examId: string }) {
       disabled={isPending}
       className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50 whitespace-nowrap"
     >
-      {isPending ? "Duplicating…" : "Duplicate Exam"}
+      {isPending ? <Pending>Duplicating…</Pending> : "Duplicate Exam"}
     </button>
   );
 }

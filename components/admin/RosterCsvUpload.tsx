@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import type { RosterCSVState } from "@/app/admin/exams/[id]/roster/actions";
+import { Pending } from "@/components/Spinner";
 
 type Props = {
   action: (prev: RosterCSVState, formData: FormData) => Promise<RosterCSVState>;
@@ -55,7 +56,7 @@ export default function RosterCsvUpload({ action }: Props) {
         disabled={pending}
         className="btn-primary rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50"
       >
-        {pending ? "Uploading…" : "Upload CSV"}
+        {pending ? <Pending>Uploading…</Pending> : "Upload CSV"}
       </button>
     </form>
   );

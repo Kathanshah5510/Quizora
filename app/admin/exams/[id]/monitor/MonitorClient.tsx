@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { APP_TIME_ZONE } from "@/lib/datetime";
+import { Pending } from "@/components/Spinner";
 
 interface RosterStudent {
   studentId: string;
@@ -192,7 +193,7 @@ export default function MonitorClient({ examId, initialData }: Props) {
             disabled={loading}
             className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
           >
-            {loading ? "Refreshing…" : "Refresh Now"}
+            {loading ? <Pending>Refreshing…</Pending> : "Refresh Now"}
           </button>
         </div>
       </div>

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { deleteAdminAction } from "./actions";
+import { Pending } from "@/components/Spinner";
 
 interface Props {
   userId: string;
@@ -33,7 +34,7 @@ export default function DeleteAdminButton({ userId, adminName, isSelf }: Props) 
         disabled={isPending}
         className="text-xs font-medium text-red-600 dark:text-red-400 hover:underline disabled:opacity-50"
       >
-        {isPending ? "Deleting…" : "Delete"}
+        {isPending ? <Pending>Deleting…</Pending> : "Delete"}
       </button>
       {error && (
         <span className="text-xs text-red-600 dark:text-red-400 max-w-xs">{error}</span>

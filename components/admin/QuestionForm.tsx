@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useRef, useEffect } from "react";
 import MediaUploader from "./MediaUploader";
+import { Pending } from "@/components/Spinner";
 
 export type QuestionType = "MCQ" | "MSQ" | "TRUE_FALSE" | "SHORT_TEXT" | "NUMERICAL" | "IMAGE_BASED";
 
@@ -512,7 +513,7 @@ export default function QuestionForm({
         disabled={isPending}
         className="btn-primary rounded-lg px-5 py-2.5 text-sm font-semibold disabled:opacity-50"
       >
-        {isPending ? "Saving…" : label}
+        {isPending ? <Pending>Saving…</Pending> : label}
       </button>
     </form>
   );

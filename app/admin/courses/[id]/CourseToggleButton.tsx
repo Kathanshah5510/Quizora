@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toggleCourseActiveAction } from "../actions";
+import { Pending } from "@/components/Spinner";
 
 export default function CourseToggleButton({
   courseId,
@@ -31,7 +32,7 @@ export default function CourseToggleButton({
           : "border-border text-foreground hover:bg-muted"
       }`}
     >
-      {pending ? "Updating…" : isActive ? "Archive Course" : "Restore Course"}
+      {pending ? <Pending>Updating…</Pending> : isActive ? "Archive Course" : "Restore Course"}
     </button>
   );
 }

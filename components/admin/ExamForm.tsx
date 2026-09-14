@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import type { ExamActionState } from "@/app/admin/exams/actions";
 import { utcToDatetimeLocal } from "@/lib/datetime";
+import { Pending } from "@/components/Spinner";
 
 type Course = { id: string; name: string; code: string };
 
@@ -469,7 +470,7 @@ export default function ExamForm({ action, courses, defaultValues, isEdit = fals
           disabled={pending}
           className="btn-primary rounded-lg px-5 py-2.5 text-sm font-semibold disabled:opacity-50"
         >
-          {pending ? "Saving…" : submitLabel}
+          {pending ? <Pending>Saving…</Pending> : submitLabel}
         </button>
       </div>
     </form>

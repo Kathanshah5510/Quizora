@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import type { CourseActionState } from "@/app/admin/courses/actions";
+import { Pending } from "@/components/Spinner";
 
 type Props = {
   action: (prev: CourseActionState, formData: FormData) => Promise<CourseActionState>;
@@ -82,7 +83,7 @@ export default function CourseForm({ action, defaultValues, submitLabel = "Save"
         disabled={pending}
         className="btn-primary rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-50"
       >
-        {pending ? "Saving…" : submitLabel}
+        {pending ? <Pending>Saving…</Pending> : submitLabel}
       </button>
     </form>
   );

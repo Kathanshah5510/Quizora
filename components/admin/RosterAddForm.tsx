@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useRef } from "react";
 import type { RosterActionState } from "@/app/admin/exams/[id]/roster/actions";
+import { Pending } from "@/components/Spinner";
 
 type Props = {
   action: (prev: RosterActionState, formData: FormData) => Promise<RosterActionState>;
@@ -88,7 +89,7 @@ export default function RosterAddForm({ action }: Props) {
         disabled={pending}
         className="btn-primary rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50"
       >
-        {pending ? "Adding…" : "Add Student"}
+        {pending ? <Pending>Adding…</Pending> : "Add Student"}
       </button>
     </form>
   );

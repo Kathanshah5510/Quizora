@@ -4,6 +4,7 @@ import { useActionState, useEffect } from "react";
 import { toast } from "sonner";
 import { createAdminAction } from "./actions";
 import PasswordInput from "@/components/PasswordInput";
+import { Pending } from "@/components/Spinner";
 
 const initialState: { error: string; success: boolean } = { error: "", success: false };
 
@@ -60,7 +61,7 @@ export default function CreateAdminForm() {
           disabled={pending}
           className="btn-primary rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-50"
         >
-          {pending ? "Creating…" : "Create Admin"}
+          {pending ? <Pending>Creating…</Pending> : "Create Admin"}
         </button>
       </div>
     </form>

@@ -4,6 +4,7 @@ import { useState, useTransition, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { reorderQuestionsAction, duplicateQuestionAction } from "./actions";
+import { Pending } from "@/components/Spinner";
 
 interface QuestionRow {
   id: string;
@@ -147,7 +148,7 @@ export default function QuestionReorderList({
       {reorderMsg && <p className="text-xs text-red-500">{reorderMsg}</p>}
       {canEdit && (
         <p className="text-xs text-muted-foreground">
-          Drag rows to reorder.{isPending && " Saving order…"}
+          Drag rows to reorder.{isPending && <> <Pending>Saving order…</Pending></>}
         </p>
       )}
 
@@ -224,7 +225,11 @@ export default function QuestionReorderList({
                               className="text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
                               title="Duplicate"
                             >
-                              {duplicatingId === q.id ? "…" : "⊕"}
+                              {duplicatingId === q.id ? (
+                                <span className="spinner spinner-inline" role="status" aria-label="Duplicating" />
+                              ) : (
+                                "⊕"
+                              )}
                             </button>
                           )}
                           <Link

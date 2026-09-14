@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Pending } from "@/components/Spinner";
 
 interface Props {
   examId: string;
@@ -39,7 +40,7 @@ export default function ReleaseToggle({ examId, anyReleased }: Props) {
           disabled={isPending}
           className="btn-primary rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50"
         >
-          {isPending ? "Updating…" : "Release All"}
+          {isPending ? <Pending>Updating…</Pending> : "Release All"}
         </button>
         {anyReleased && (
           <button

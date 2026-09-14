@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { loginAction } from "./actions";
 import PasswordInput from "@/components/PasswordInput";
+import { Pending } from "@/components/Spinner";
 
 const initialState = { error: "" };
 
@@ -48,7 +49,7 @@ export default function LoginForm() {
         disabled={pending}
         className="btn-primary w-full rounded-lg px-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
       >
-        {pending ? "Signing in…" : "Sign in"}
+        {pending ? <Pending>Signing in…</Pending> : "Sign in"}
       </button>
     </form>
   );

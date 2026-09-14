@@ -4,8 +4,9 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import dynamic from "next/dynamic";
+import { PageSpinner } from "@/components/Spinner";
 const QuestionForm = dynamic(() => import("@/components/admin/QuestionForm"), {
-  loading: () => <div className="animate-pulse rounded-xl bg-muted h-64" />,
+  loading: () => <PageSpinner label="Loading form…" />,
 });
 import { createQuestionAction } from "../actions";
 

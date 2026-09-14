@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { removeStudentAction } from "@/app/admin/exams/[id]/roster/actions";
+import { Pending } from "@/components/Spinner";
 
 export default function RemoveStudentButton({
   examId,
@@ -27,7 +28,7 @@ export default function RemoveStudentButton({
       disabled={pending}
       className="text-xs text-destructive hover:underline disabled:opacity-50 transition-opacity"
     >
-      {pending ? "Removing…" : "Remove"}
+      {pending ? <Pending>Removing…</Pending> : "Remove"}
     </button>
   );
 }

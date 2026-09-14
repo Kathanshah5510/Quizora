@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Pending } from "@/components/Spinner";
 
 interface DeleteButtonProps {
   onDelete: () => Promise<{ error?: string; success?: boolean }>;
@@ -66,7 +67,7 @@ export default function DeleteButton({
         disabled={isPending}
         className={className ?? base}
       >
-        {isPending ? "Deleting…" : label}
+        {isPending ? <Pending>Deleting…</Pending> : label}
       </button>
       {error && <span className="text-xs text-red-600 dark:text-red-400">{error}</span>}
     </span>

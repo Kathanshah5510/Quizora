@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { resetAdminPasswordAction } from "./actions";
+import { Pending } from "@/components/Spinner";
 
 export default function ResetPasswordButton({ userId }: { userId: string }) {
   const [open, setOpen] = useState(false);
@@ -62,7 +63,7 @@ export default function ResetPasswordButton({ userId }: { userId: string }) {
           disabled={isPending || password.length < 8}
           className="rounded border border-border px-2 py-0.5 text-xs font-medium hover:bg-muted transition-colors disabled:opacity-50"
         >
-          {isPending ? "Saving…" : "Set"}
+          {isPending ? <Pending>Saving…</Pending> : "Set"}
         </button>
         <button
           type="button"

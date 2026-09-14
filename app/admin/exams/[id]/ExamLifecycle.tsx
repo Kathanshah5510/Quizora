@@ -9,6 +9,7 @@ import {
   reopenExamAction,
 } from "../actions";
 import { describeAvailability } from "@/lib/services/exam-lifecycle";
+import { Pending } from "@/components/Spinner";
 
 type Props = {
   examId: string;
@@ -134,7 +135,7 @@ export default function ExamLifecycle({
       )}
 
       {pending && (
-        <p className="text-xs text-muted-foreground">Updating…</p>
+        <p className="text-xs text-muted-foreground"><Pending>Updating…</Pending></p>
       )}
     </div>
   );

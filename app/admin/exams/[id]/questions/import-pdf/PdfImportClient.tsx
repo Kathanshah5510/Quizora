@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import type { ExtractedQuestion, ExtractedOption } from "@/lib/ai/extractQuestions";
+import { Pending } from "@/components/Spinner";
 
 interface Props {
   examId: string;
@@ -162,7 +163,7 @@ export default function PdfImportClient({ examId }: Props) {
               disabled={importing || questions.length === 0}
               className="btn-primary rounded-lg px-4 py-1.5 text-sm font-semibold disabled:opacity-50"
             >
-              {importing ? "Importing…" : `Import ${questions.length} question${questions.length !== 1 ? "s" : ""}`}
+              {importing ? <Pending>Importing…</Pending> : `Import ${questions.length} question${questions.length !== 1 ? "s" : ""}`}
             </button>
           </div>
         </div>
@@ -316,7 +317,7 @@ export default function PdfImportClient({ examId }: Props) {
               disabled={importing || questions.length === 0}
               className="btn-primary rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50"
             >
-              {importing ? "Importing…" : `Import ${questions.length} question${questions.length !== 1 ? "s" : ""}`}
+              {importing ? <Pending>Importing…</Pending> : `Import ${questions.length} question${questions.length !== 1 ? "s" : ""}`}
             </button>
           </div>
         )}
@@ -393,7 +394,7 @@ export default function PdfImportClient({ examId }: Props) {
           disabled={uploading}
           className="btn-primary rounded-lg px-5 py-2 text-sm font-semibold disabled:opacity-50"
         >
-          {uploading ? "Extracting questions…" : "Extract Questions with AI →"}
+          {uploading ? <Pending>Extracting questions…</Pending> : "Extract Questions with AI →"}
         </button>
       </div>
     </div>

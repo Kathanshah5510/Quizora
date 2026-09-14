@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Pending } from "@/components/Spinner";
 
 interface Props {
   examId: string;
@@ -81,7 +82,7 @@ export default function GradeResponseForm({
         disabled={isPending}
         className="btn-primary rounded-lg px-4 py-1.5 text-sm font-semibold disabled:opacity-50"
       >
-        {isPending ? "Saving…" : "Save"}
+        {isPending ? <Pending>Saving…</Pending> : "Save"}
       </button>
       {saved && (
         <span className="text-xs text-green-700 dark:text-green-400 font-medium">Saved</span>

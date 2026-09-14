@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+import { Pending } from "@/components/Spinner";
 
 interface FormState {
   name: string;
@@ -237,7 +238,7 @@ export default function ExamStartPage() {
               disabled={isPending}
               className="btn-primary w-full rounded-xl py-3 text-sm font-bold mt-2"
             >
-              {isPending ? "Verifying…" : "Verify & Start Exam →"}
+              {isPending ? <Pending>Verifying…</Pending> : "Verify & Start Exam →"}
             </button>
           </form>
 

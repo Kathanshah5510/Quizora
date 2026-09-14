@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Pending } from "@/components/Spinner";
 
 interface Props {
   action: () => Promise<{ error: string | null; success: boolean }>;
@@ -33,7 +34,7 @@ export default function QuestionDeleteButton({ action }: Props) {
           disabled={isPending}
           className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
         >
-          {isPending ? "Deleting…" : "Confirm"}
+          {isPending ? <Pending>Deleting…</Pending> : "Confirm"}
         </button>
         <button
           onClick={() => setConfirming(false)}

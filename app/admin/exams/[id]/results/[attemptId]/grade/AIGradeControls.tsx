@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Pending } from "@/components/Spinner";
 
 interface AIGradingData {
   aiScore: number;
@@ -106,7 +107,7 @@ export default function AIGradeControls({
             disabled={loading}
             className="rounded-md bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground hover:opacity-80 transition-opacity disabled:opacity-50"
           >
-            {loading ? "Getting AI Grade…" : aiGrading?.status === "REJECTED" ? "Re-run AI Grade" : "Get AI Grade"}
+            {loading ? <Pending>Getting AI Grade…</Pending> : aiGrading?.status === "REJECTED" ? "Re-run AI Grade" : "Get AI Grade"}
           </button>
         )}
       </div>

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Pending } from "@/components/Spinner";
 
 interface QuestionRow {
   id: string;
@@ -171,7 +172,7 @@ export default function CopyQuestionsClient({
             className="btn-primary w-full rounded-xl py-3 text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isPending
-              ? "Copying…"
+              ? <Pending>Copying…</Pending>
               : `Copy ${selectedIds.size > 0 ? selectedIds.size : ""} Question${selectedIds.size !== 1 ? "s" : ""} →`}
           </button>
         </div>

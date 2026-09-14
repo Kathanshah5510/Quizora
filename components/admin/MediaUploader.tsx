@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useCallback } from "react";
+import { Pending } from "@/components/Spinner";
 
 interface CurrentAsset {
   id: string;
@@ -117,7 +118,7 @@ export default function MediaUploader({ defaultAsset, onChange }: MediaUploaderP
             disabled={uploading}
             className="text-xs text-primary hover:underline disabled:opacity-50"
           >
-            {uploading ? "Uploading…" : "Replace image"}
+            {uploading ? <Pending>Uploading…</Pending> : "Replace image"}
           </button>
         </div>
       ) : (
@@ -136,8 +137,8 @@ export default function MediaUploader({ defaultAsset, onChange }: MediaUploaderP
         >
           {uploading ? (
             <>
-              <span className="text-lg">⏳</span>
-              <span>Uploading…</span>
+              <span className="spinner" style={{ "--spinner-size": "1.75rem" } as React.CSSProperties} aria-hidden="true" />
+              <span role="status" aria-live="polite">Uploading…</span>
             </>
           ) : (
             <>
