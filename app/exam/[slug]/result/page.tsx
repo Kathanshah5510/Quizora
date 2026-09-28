@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import CopyButton from "@/components/CopyButton";
 import { APP_TIME_ZONE } from "@/lib/datetime";
+import RichText from "@/components/RichText";
 
 interface QuestionResult {
   questionId: string;
@@ -372,7 +373,9 @@ export default function ResultPage() {
                           </span>
                         )}
                       </div>
-                      <p className="text-sm font-medium text-foreground mt-1.5 leading-snug">{q.text}</p>
+                      <div className="text-sm font-medium text-foreground mt-1.5 leading-snug">
+                        <RichText text={q.text} />
+                      </div>
                     </div>
                     <div className="shrink-0 text-right">
                       <p className="font-mono text-sm font-semibold text-foreground">

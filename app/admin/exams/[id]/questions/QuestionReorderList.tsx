@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { reorderQuestionsAction, duplicateQuestionAction } from "./actions";
 import { Pending } from "@/components/Spinner";
+import RichText from "@/components/RichText";
 
 interface QuestionRow {
   id: string;
@@ -274,7 +275,7 @@ function QuestionPreview({ question }: { question: QuestionRow }) {
         />
       )}
 
-      <p className="text-sm font-medium text-foreground whitespace-pre-wrap">{question.text}</p>
+      <RichText text={question.text} className="text-sm font-medium text-foreground" />
 
       {/* Options preview */}
       {question.options && question.options.length > 0 && (

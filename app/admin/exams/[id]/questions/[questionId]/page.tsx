@@ -11,6 +11,7 @@ const QuestionForm = dynamic(() => import("@/components/admin/QuestionForm"), {
 });
 import QuestionDeleteButton from "./QuestionDeleteButton";
 import { updateQuestionAction, deleteQuestionAction } from "../actions";
+import RichText from "@/components/RichText";
 
 export const metadata: Metadata = { title: "Edit Question" };
 
@@ -143,7 +144,7 @@ function QuestionReadOnly({ question }: { question: { type: string; text: string
     <div className="space-y-4">
       <div className="rounded-xl border border-border bg-card p-5">
         <p className="text-xs text-muted-foreground mb-1 font-medium uppercase tracking-wide">{question.type.replace("_", " ")}</p>
-        <p className="text-base text-foreground whitespace-pre-wrap">{question.text}</p>
+        <RichText text={question.text} className="text-base text-foreground" />
         {question.options.length > 0 && (
           <ul className="mt-4 space-y-2">
             {question.options.map((o, i) => (

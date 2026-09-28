@@ -150,6 +150,52 @@ body {
   .spinner { animation-duration: 2.4s; }
 }
 
+/* ── Rich text (question/explanation Markdown) ──
+   Renders admin-authored formatting — bold, italic, underline, inline code,
+   code blocks, lists — matching what the editor toolbar in RichTextEditor
+   inserts. Code blocks use pre-wrap so multi-line code never collapses to
+   one line, which was the original bug this was built to fix. */
+.rich-text {
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+.rich-text > *:first-child { margin-top: 0; }
+.rich-text > *:last-child { margin-bottom: 0; }
+.rich-text p { margin: 0 0 0.6em; white-space: pre-wrap; }
+.rich-text strong { font-weight: 700; }
+.rich-text em { font-style: italic; }
+.rich-text u { text-decoration: underline; }
+.rich-text ul, .rich-text ol { margin: 0 0 0.6em; padding-left: 1.4em; }
+.rich-text li { margin: 0.15em 0; }
+.rich-text li > p { margin: 0; display: inline; }
+.rich-text code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  background: var(--muted);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+}
+.rich-text pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85em;
+  line-height: 1.5;
+  background: var(--muted);
+  border-radius: 8px;
+  padding: 0.75em 1em;
+  margin: 0 0 0.6em;
+  overflow-x: auto;
+  white-space: pre;
+}
+.rich-text pre code { background: none; padding: 0; }
+.rich-text a { color: var(--primary); text-decoration: underline; }
+.rich-text blockquote {
+  margin: 0 0 0.6em;
+  padding-left: 0.9em;
+  border-left: 3px solid var(--border);
+  color: var(--muted-foreground);
+}
+
 .sidebar-link {
   transition: background 0.15s ease, color 0.15s ease;
   color: oklch(0.62 0.06 264);

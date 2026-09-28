@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useExamGuard } from "@/components/exam/useExamGuard";
 import ThemeToggle from "@/components/ThemeToggle";
+import RichText from "@/components/RichText";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -132,7 +133,9 @@ function QuestionView({
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-2">
-        <p className="font-medium text-base leading-relaxed flex-1">{question.text}</p>
+        <div className="font-medium text-base leading-relaxed flex-1">
+          <RichText text={question.text} />
+        </div>
         <span className="text-xs text-muted-foreground whitespace-nowrap">
           {question.marks} mark{question.marks !== 1 ? "s" : ""}
           {question.negativeMarks > 0 && ` | −${question.negativeMarks} wrong`}

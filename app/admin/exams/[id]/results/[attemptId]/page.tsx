@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatDateTime } from "@/lib/utils";
 import { buildResultSummary } from "@/lib/results/resultDomain";
+import RichText from "@/components/RichText";
 
 export const metadata: Metadata = { title: "Attempt Review" };
 
@@ -245,7 +246,9 @@ export default async function AttemptReviewPage({ params }: Props) {
                     <span className="text-xs font-medium text-muted-foreground">Q{idx + 1}</span>
                     <span className="text-xs rounded bg-muted px-1.5 py-0.5 font-mono">{q.type}</span>
                   </div>
-                  <p className="text-sm font-medium text-foreground mt-1">{q.text}</p>
+                  <div className="text-sm font-medium text-foreground mt-1">
+                    <RichText text={q.text} />
+                  </div>
                 </div>
                 <div className="shrink-0 text-right">
                   {grade ? (

@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import GradeResponseForm from "./GradeResponseForm";
 import AIGradeControls from "./AIGradeControls";
+import RichText from "@/components/RichText";
 
 export const metadata: Metadata = { title: "Grade Responses" };
 
@@ -130,7 +131,9 @@ export default async function GradeResponsesPage({ params }: Props) {
                       <span className="text-xs text-muted-foreground font-mono">
                         Q{idx + 1} · SHORT_TEXT · {Number(q.marks)} mark{Number(q.marks) !== 1 ? "s" : ""}
                       </span>
-                      <p className="text-sm font-medium text-foreground mt-1">{q.text}</p>
+                      <div className="text-sm font-medium text-foreground mt-1">
+                        <RichText text={q.text} />
+                      </div>
                     </div>
                   </div>
 

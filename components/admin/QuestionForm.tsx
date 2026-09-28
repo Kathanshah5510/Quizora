@@ -3,6 +3,7 @@
 import { useState, useTransition, useRef, useEffect } from "react";
 import MediaUploader from "./MediaUploader";
 import { Pending } from "@/components/Spinner";
+import RichTextEditor from "@/components/RichTextEditor";
 
 export type QuestionType = "MCQ" | "MSQ" | "TRUE_FALSE" | "SHORT_TEXT" | "NUMERICAL" | "IMAGE_BASED";
 
@@ -260,13 +261,7 @@ export default function QuestionForm({
         </div>
 
         {/* Question text */}
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Question text"
-          rows={3}
-          className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-y"
-        />
+        <RichTextEditor value={text} onChange={setText} placeholder="Question text" rows={3} />
 
         {/* Image uploader (IMAGE_BASED) */}
         {type === "IMAGE_BASED" && (
@@ -487,12 +482,11 @@ export default function QuestionForm({
 
         {/* Explanation (collapsible) */}
         {showExplanation && (
-          <textarea
+          <RichTextEditor
             value={explanation}
-            onChange={(e) => setExplanation(e.target.value)}
+            onChange={setExplanation}
             placeholder="Explanation shown to students after results are released..."
             rows={2}
-            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-y"
           />
         )}
       </div>
