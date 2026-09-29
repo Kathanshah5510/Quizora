@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import CopyQuestionsClient from "./CopyQuestionsClient";
+import { canAccessCourse } from "@/lib/courseAccess";
 
 export const metadata: Metadata = { title: "Copy Questions" };
 
@@ -19,13 +20,21 @@ export default async function CopyQuestionsPage({
 
   const targetExam = await db.exam.findUnique({
     where: { id: targetExamId },
-    select: { id: true, title: true, status: true },
+    select: { id: true, title: true, status: true, courseId: true },
   });
   if (!targetExam || targetExam.status === "CLOSED") notFound();
+  if (!(await canAccessCourse(user, targetExam.courseId))) notFound();
 
-  // All other non-deleted exams with at least 1 non-deleted question
+  // Only exams from courses this admin can access — otherwise this page would
+  // leak question text from courses they have no business seeing.
   const sourceExams = await db.exam.findMany({
-    where: { id: { not: targetExamId }, isDeleted: false },
+    where: {
+      id: { not: targetExamId },
+      isDeleted: false,
+      ...(user.role !== "SUPER_ADMIN" && {
+        course: { OR: [{ createdById: user.id }, { teachers: { some: { userId: user.id } } }] },
+      }),
+    },
     orderBy: [{ course: { code: "asc" } }, { title: "asc" }],
     select: {
       id: true,

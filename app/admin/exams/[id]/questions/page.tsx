@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import QuestionReorderList from "./QuestionReorderList";
+import { canAccessCourse } from "@/lib/courseAccess";
 
 export const metadata: Metadata = { title: "Questions" };
 
@@ -45,9 +46,10 @@ export default async function QuestionsPage({
   const { id: examId } = await params;
   const exam = await db.exam.findUnique({
     where: { id: examId },
-    select: { id: true, title: true, status: true, defaultMarks: true },
+    select: { id: true, title: true, status: true, courseId: true, defaultMarks: true },
   });
   if (!exam) redirect("/admin/exams");
+  if (!(await canAccessCourse(user, exam.courseId))) redirect("/admin/exams");
 
   const questions = await db.question.findMany({
     where: { examId, isDeleted: false },

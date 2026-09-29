@@ -4,13 +4,19 @@ import { requireAdmin } from "@/lib/auth";
 import { CreateExamSchema } from "@/lib/validation/exam";
 import { generateExamSlug } from "@/lib/utils";
 import { datetimeLocalToUtc } from "@/lib/datetime";
+import { canAccessCourse } from "@/lib/courseAccess";
 
 export async function GET() {
   const user = await requireAdmin();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const exams = await db.exam.findMany({
-    where: { isDeleted: false },
+    where: {
+      isDeleted: false,
+      ...(user.role !== "SUPER_ADMIN" && {
+        course: { OR: [{ createdById: user.id }, { teachers: { some: { userId: user.id } } }] },
+      }),
+    },
     orderBy: { createdAt: "desc" },
     include: {
       course: { select: { id: true, name: true, code: true } },
@@ -33,8 +39,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
   }
 
-  const course = await db.course.findUnique({ where: { id: parsed.data.courseId } });
+  const course = await db.course.findUnique({
+    where: { id: parsed.data.courseId },
+    select: { id: true, roster: { select: { studentId: true, name: true, email: true } } },
+  });
   if (!course) return NextResponse.json({ error: "Course not found" }, { status: 404 });
+  if (!(await canAccessCourse(user, course.id))) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
 
   const slug = generateExamSlug(parsed.data.title);
 
@@ -67,6 +79,17 @@ export async function POST(req: NextRequest) {
       createdById: user.id,
     },
   });
+
+  if (course.roster.length > 0) {
+    await db.studentRoster.createMany({
+      data: course.roster.map((s) => ({
+        examId: exam.id,
+        studentId: s.studentId,
+        name: s.name,
+        email: s.email,
+      })),
+    });
+  }
 
   return NextResponse.json({ exam }, { status: 201 });
 }

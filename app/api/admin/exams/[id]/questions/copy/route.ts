@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { requireExamAccess } from "@/lib/courseAccess";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = await requireAdmin();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   const { id: targetExamId } = await params;
+  if (!(await requireExamAccess(targetExamId))) {
+    return NextResponse.json({ error: "Exam not found" }, { status: 404 });
+  }
 
   let body: { sourceExamId?: string; questionIds?: string[] };
   try {
@@ -24,6 +24,13 @@ export async function POST(
   }
   if (sourceExamId === targetExamId) {
     return NextResponse.json({ error: "Cannot copy questions to the same exam" }, { status: 400 });
+  }
+
+  // The source exam may belong to a different course — copying from it requires
+  // access to that course too, or this becomes a way to exfiltrate question
+  // text from exams the caller has no business seeing.
+  if (!(await requireExamAccess(sourceExamId))) {
+    return NextResponse.json({ error: "Source exam not found" }, { status: 404 });
   }
 
   // Verify target exam exists

@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { formatDateTime } from "@/lib/utils";
 import { buildResultSummary } from "@/lib/results/resultDomain";
 import RichText from "@/components/RichText";
+import { requireExamAccess } from "@/lib/courseAccess";
 
 export const metadata: Metadata = { title: "Attempt Review" };
 
@@ -30,6 +31,7 @@ export default async function AttemptReviewPage({ params }: Props) {
   if (!user) redirect("/login");
 
   const { id: examId, attemptId } = await params;
+  if (!(await requireExamAccess(examId))) notFound();
 
   // Load attempt scoped by examId — prevents cross-exam access
   const attempt = await db.examAttempt.findFirst({

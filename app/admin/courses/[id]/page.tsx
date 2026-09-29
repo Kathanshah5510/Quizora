@@ -8,6 +8,8 @@ import CourseToggleButton from "./CourseToggleButton";
 import { updateCourseAction, deleteCourseAction } from "../actions";
 import DeleteButton from "@/components/admin/DeleteButton";
 import { formatDate } from "@/lib/utils";
+import { canAccessCourse, canManageCourseTeachers } from "@/lib/courseAccess";
+import CourseTeachers from "./CourseTeachers";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
@@ -24,6 +26,8 @@ export default async function CourseDetailPage({
   if (!user) redirect("/login");
 
   const { id } = await params;
+  if (!(await canAccessCourse(user, id))) notFound();
+
   const course = await db.course.findUnique({
     where: { id },
     include: {
@@ -37,11 +41,16 @@ export default async function CourseDetailPage({
         },
       },
       createdBy: { select: { name: true } },
+      teachers: {
+        orderBy: { createdAt: "asc" },
+        select: { id: true, userId: true, user: { select: { name: true, email: true } } },
+      },
     },
   });
 
   if (!course) notFound();
 
+  const canManageTeachers = await canManageCourseTeachers(user, course.id);
   const boundUpdateAction = updateCourseAction.bind(null, course.id);
 
   return (
@@ -89,6 +98,32 @@ export default async function CourseDetailPage({
           submitLabel="Save Changes"
         />
       </div>
+
+      {/* Course roster */}
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4">
+          <div>
+            <h2 className="text-base font-semibold text-card-foreground">Course Roster</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Students here are copied into every new exam's roster automatically.
+            </p>
+          </div>
+          <Link
+            href={`/admin/courses/${course.id}/roster`}
+            className="text-sm text-primary hover:underline whitespace-nowrap"
+          >
+            Manage Roster →
+          </Link>
+        </div>
+      </div>
+
+      {/* Course teachers */}
+      <CourseTeachers
+        courseId={course.id}
+        creatorName={course.createdBy.name}
+        teachers={course.teachers}
+        canManage={canManageTeachers}
+      />
 
       {/* Exams in this course */}
       <div className="rounded-xl border border-border bg-card overflow-hidden">

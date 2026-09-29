@@ -28,12 +28,17 @@ export default async function ExamsPage({ searchParams }: Props) {
   const statusFilter = sp.status;
   const courseFilter = sp.course;
 
+  const courseScope = user.role !== "SUPER_ADMIN"
+    ? { OR: [{ createdById: user.id }, { teachers: { some: { userId: user.id } } }] }
+    : {};
+
   const [exams, courses] = await Promise.all([
     db.exam.findMany({
       where: {
         isDeleted: false,
         ...(statusFilter ? { status: statusFilter as never } : {}),
         ...(courseFilter ? { courseId: courseFilter } : {}),
+        course: courseScope,
       },
       orderBy: { createdAt: "desc" },
       include: {
@@ -42,7 +47,7 @@ export default async function ExamsPage({ searchParams }: Props) {
       },
     }),
     db.course.findMany({
-      where: { isDeleted: false, isActive: true },
+      where: { isDeleted: false, isActive: true, ...courseScope },
       orderBy: { code: "asc" },
       select: { id: true, code: true, name: true },
     }),

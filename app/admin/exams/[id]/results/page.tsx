@@ -7,6 +7,7 @@ import { formatDateTime } from "@/lib/utils";
 import { buildResultSummary } from "@/lib/results/resultDomain";
 import ResultsFilterBar from "./ResultsFilterBar";
 import ReleaseToggle from "./ReleaseToggle";
+import { canAccessCourse } from "@/lib/courseAccess";
 
 export const metadata: Metadata = { title: "Results" };
 
@@ -43,9 +44,10 @@ export default async function ResultsPage({ params, searchParams }: Props) {
 
   const exam = await db.exam.findUnique({
     where: { id: examId },
-    select: { id: true, title: true, resultRelease: true, course: { select: { code: true, name: true } } },
+    select: { id: true, title: true, courseId: true, resultRelease: true, course: { select: { code: true, name: true } } },
   });
   if (!exam) notFound();
+  if (!(await canAccessCourse(user, exam.courseId))) notFound();
 
   const where = {
     examId,

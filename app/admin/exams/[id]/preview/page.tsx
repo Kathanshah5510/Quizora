@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { buildRandomizedOrders } from "@/lib/exam/randomize";
+import { canAccessCourse } from "@/lib/courseAccess";
 
 export const metadata: Metadata = { title: "Exam Preview" };
 export const dynamic = "force-dynamic"; // re-randomize on each load
@@ -28,6 +29,7 @@ export default async function PreviewPage({ params, searchParams }: Props) {
       title: true,
       description: true,
       instructorName: true,
+      courseId: true,
       durationMinutes: true,
       timerMode: true,
       perQuestionSeconds: true,
@@ -39,6 +41,7 @@ export default async function PreviewPage({ params, searchParams }: Props) {
     },
   });
   if (!exam) notFound();
+  if (!(await canAccessCourse(user, exam.courseId))) notFound();
 
   const rawQuestions = await db.question.findMany({
     where: { examId },

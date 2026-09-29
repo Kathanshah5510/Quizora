@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import GradeResponseForm from "./GradeResponseForm";
 import AIGradeControls from "./AIGradeControls";
 import RichText from "@/components/RichText";
+import { requireExamAccess } from "@/lib/courseAccess";
 
 export const metadata: Metadata = { title: "Grade Responses" };
 
@@ -18,6 +19,7 @@ export default async function GradeResponsesPage({ params }: Props) {
   if (!user) redirect("/login");
 
   const { id: examId, attemptId } = await params;
+  if (!(await requireExamAccess(examId))) notFound();
 
   const attempt = await db.examAttempt.findFirst({
     where: { id: attemptId, examId },

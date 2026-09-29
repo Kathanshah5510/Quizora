@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { requireExamAccess } from "@/lib/courseAccess";
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = await requireAdmin();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   const { id: examId } = await params;
+  if (!(await requireExamAccess(examId))) return NextResponse.json({ error: "Exam not found" }, { status: 404 });
 
   const exam = await db.exam.findUnique({
     where: { id: examId },

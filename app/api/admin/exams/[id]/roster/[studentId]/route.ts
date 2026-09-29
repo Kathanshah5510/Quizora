@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { requireAdmin } from "@/lib/auth";
+import { requireExamAccess } from "@/lib/courseAccess";
 
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string; studentId: string }> }
 ) {
-  const user = await requireAdmin();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   const { id, studentId } = await params;
+  if (!(await requireExamAccess(id))) return NextResponse.json({ error: "Exam not found" }, { status: 404 });
+
   const deleted = await db.studentRoster.deleteMany({
     where: { examId: id, studentId },
   });

@@ -7,14 +7,14 @@ import {
   QuestionExtractionError,
   type ExtractedQuestion,
 } from "@/lib/ai/extractQuestions";
+import { requireExamAccess } from "@/lib/courseAccess";
 
 const MAX_PDF_SIZE = 10 * 1024 * 1024; // 10 MB
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const user = await requireAdmin();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   const { id: examId } = await params;
+  if (!(await requireExamAccess(examId))) return NextResponse.json({ error: "Exam not found" }, { status: 404 });
+
   const exam = await db.exam.findUnique({ where: { id: examId }, select: { id: true, status: true } });
   if (!exam) return NextResponse.json({ error: "Exam not found" }, { status: 404 });
   if (exam.status === "CLOSED") {

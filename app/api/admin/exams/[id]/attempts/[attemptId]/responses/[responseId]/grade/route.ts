@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
   deriveGradingStatus,
   recalculateTotalScore,
 } from "@/lib/results/resultDomain";
 import type { PerQuestionMark } from "@/lib/results/resultDomain";
+import { requireExamAccess } from "@/lib/courseAccess";
 
 const GradeSchema = z.object({
   earnedMarks: z.number().min(0),
@@ -20,10 +20,8 @@ export async function PATCH(
     params: Promise<{ id: string; attemptId: string; responseId: string }>;
   }
 ) {
-  const user = await requireAdmin();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   const { id: examId, attemptId, responseId } = await params;
+  if (!(await requireExamAccess(examId))) return NextResponse.json({ error: "Exam not found" }, { status: 404 });
 
   const response = await db.studentResponse.findFirst({
     where: { id: responseId, attemptId },

@@ -14,7 +14,12 @@ export default async function CoursesPage() {
   if (!user) redirect("/login");
 
   const courses = await db.course.findMany({
-    where: { isDeleted: false },
+    where: {
+      isDeleted: false,
+      ...(user.role !== "SUPER_ADMIN" && {
+        OR: [{ createdById: user.id }, { teachers: { some: { userId: user.id } } }],
+      }),
+    },
     orderBy: { createdAt: "desc" },
     include: {
       _count: { select: { exams: true } },

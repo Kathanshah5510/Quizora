@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { APP_TIME_ZONE } from "@/lib/datetime";
+import { requireExamAccess } from "@/lib/courseAccess";
 
 export const metadata: Metadata = { title: "Event Timeline" };
 
@@ -31,6 +32,7 @@ export default async function EventTimelinePage({ params }: Props) {
   if (!user) redirect("/login");
 
   const { id: examId, attemptId } = await params;
+  if (!(await requireExamAccess(examId))) notFound();
 
   const attempt = await db.examAttempt.findFirst({
     where: { id: attemptId, examId },

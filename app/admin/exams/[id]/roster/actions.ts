@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
+import { requireExamAccess } from "@/lib/courseAccess";
 import { StudentIdentitySchema } from "@/lib/validation/student";
 import { parseRosterCSV } from "@/lib/utils";
 
@@ -18,8 +19,7 @@ export async function addStudentAction(
   _prev: RosterActionState,
   formData: FormData
 ): Promise<RosterActionState> {
-  const user = await requireAdmin();
-  if (!user) return { error: "Unauthorized", success: false };
+  if (!(await requireExamAccess(examId))) return { error: "Unauthorized", success: false };
 
   const raw = {
     studentId: (formData.get("studentId") as string)?.trim(),
@@ -54,8 +54,7 @@ export async function removeStudentAction(
   examId: string,
   studentId: string
 ): Promise<{ error?: string; success?: boolean }> {
-  const user = await requireAdmin();
-  if (!user) return { error: "Unauthorized" };
+  if (!(await requireExamAccess(examId))) return { error: "Unauthorized" };
 
   await db.studentRoster.deleteMany({ where: { examId, studentId } });
   revalidatePath(`/admin/exams/${examId}/roster`);
@@ -67,8 +66,7 @@ export async function uploadRosterCSVAction(
   _prev: RosterCSVState,
   formData: FormData
 ): Promise<RosterCSVState> {
-  const user = await requireAdmin();
-  if (!user) return { error: "Unauthorized", success: false };
+  if (!(await requireExamAccess(examId))) return { error: "Unauthorized", success: false };
 
   const file = formData.get("csv") as File | null;
   if (!file || file.size === 0) return { error: "No file selected", success: false };
@@ -112,4 +110,32 @@ export async function uploadRosterCSVAction(
 
   revalidatePath(`/admin/exams/${examId}/roster`);
   return { error: "", success: true, stats: { added, errors, total: rows.length } };
+}
+
+/** Pulls any course-roster students not already on this exam's roster into it. */
+export async function syncRosterFromCourseAction(
+  examId: string
+): Promise<{ error?: string; success?: boolean; added?: number }> {
+  if (!(await requireExamAccess(examId))) return { error: "Unauthorized" };
+
+  const exam = await db.exam.findUnique({
+    where: { id: examId },
+    select: {
+      course: { select: { roster: { select: { studentId: true, name: true, email: true } } } },
+      roster: { select: { studentId: true } },
+    },
+  });
+  if (!exam) return { error: "Exam not found" };
+  if (exam.course.roster.length === 0) return { success: true, added: 0 };
+
+  const existingIds = new Set(exam.roster.map((s) => s.studentId));
+  const missing = exam.course.roster.filter((s) => !existingIds.has(s.studentId));
+  if (missing.length === 0) return { success: true, added: 0 };
+
+  await db.studentRoster.createMany({
+    data: missing.map((s) => ({ examId, studentId: s.studentId, name: s.name, email: s.email })),
+  });
+
+  revalidatePath(`/admin/exams/${examId}/roster`);
+  return { success: true, added: missing.length };
 }

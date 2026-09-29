@@ -6,14 +6,13 @@ import { db } from "@/lib/db";
 import { canAccessCourse } from "@/lib/courseAccess";
 import RosterAddForm from "@/components/admin/RosterAddForm";
 import RosterCsvUpload from "@/components/admin/RosterCsvUpload";
-import RemoveStudentButton from "@/components/admin/RemoveStudentButton";
-import SyncFromCourseButton from "./SyncFromCourseButton";
-import { addStudentAction, uploadRosterCSVAction } from "./actions";
+import RemoveCourseStudentButton from "./RemoveCourseStudentButton";
+import { addCourseStudentAction, uploadCourseRosterCSVAction } from "./actions";
 import { formatDate } from "@/lib/utils";
 
-export const metadata: Metadata = { title: "Exam Roster" };
+export const metadata: Metadata = { title: "Course Roster" };
 
-export default async function RosterPage({
+export default async function CourseRosterPage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -22,24 +21,22 @@ export default async function RosterPage({
   if (!user) redirect("/login");
 
   const { id } = await params;
-  const exam = await db.exam.findUnique({
+  if (!(await canAccessCourse(user, id))) notFound();
+
+  const course = await db.course.findUnique({
     where: { id },
     select: {
       id: true,
-      title: true,
-      status: true,
-      allowExternalStudents: true,
-      courseId: true,
+      name: true,
+      code: true,
       roster: { orderBy: { createdAt: "asc" } },
-      course: { select: { _count: { select: { roster: true } } } },
     },
   });
 
-  if (!exam) notFound();
-  if (!(await canAccessCourse(user, exam.courseId))) notFound();
+  if (!course) notFound();
 
-  const boundAddStudent = addStudentAction.bind(null, exam.id);
-  const boundUploadCSV = uploadRosterCSVAction.bind(null, exam.id);
+  const boundAddStudent = addCourseStudentAction.bind(null, course.id);
+  const boundUploadCSV = uploadCourseRosterCSVAction.bind(null, course.id);
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -47,47 +44,42 @@ export default async function RosterPage({
       <div>
         <div className="flex items-center justify-between gap-2 mb-3">
           <Link
-            href={`/admin/exams/${exam.id}`}
+            href={`/admin/courses/${course.id}`}
             className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
           >
-            ← Back to Exam
+            ← Back to Course
           </Link>
-          <div className="flex items-center gap-2">
-            {exam.course._count.roster > 0 && <SyncFromCourseButton examId={exam.id} />}
-            {exam.roster.length > 0 && (
-              <a
-                href={`/api/admin/exams/${exam.id}/roster/csv`}
-                className="rounded-lg border border-border px-4 py-1.5 text-sm font-medium text-foreground hover:bg-muted transition-colors whitespace-nowrap"
-              >
-                Export CSV
-              </a>
-            )}
-          </div>
+          {course.roster.length > 0 && (
+            <a
+              href={`/api/admin/courses/${course.id}/roster/csv`}
+              className="rounded-lg border border-border px-4 py-1.5 text-sm font-medium text-foreground hover:bg-muted transition-colors whitespace-nowrap"
+            >
+              Export CSV
+            </a>
+          )}
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Link href="/admin/exams" className="hover:text-foreground transition-colors">
-            Exams
+          <Link href="/admin/courses" className="hover:text-foreground transition-colors">
+            Courses
           </Link>
           <span>/</span>
-          <Link href={`/admin/exams/${exam.id}`} className="hover:text-foreground transition-colors">
-            {exam.title}
+          <Link href={`/admin/courses/${course.id}`} className="hover:text-foreground transition-colors">
+            {course.code}
           </Link>
           <span>/</span>
           <span>Roster</span>
         </div>
-        <h1 className="text-2xl font-bold text-foreground mt-2">Student Roster</h1>
+        <h1 className="text-2xl font-bold text-foreground mt-2">Course Roster</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          {exam.roster.length} student{exam.roster.length !== 1 ? "s" : ""} enrolled
-          {exam.allowExternalStudents && " · External students allowed (roster is optional)"}
+          {course.roster.length} student{course.roster.length !== 1 ? "s" : ""} enrolled
         </p>
       </div>
 
-      {exam.allowExternalStudents && (
-        <div className="rounded-lg bg-blue-50 border border-blue-200 dark:bg-blue-900/20 dark:border-blue-800 px-4 py-3 text-sm text-blue-700 dark:text-blue-400">
-          This exam allows external students. Any student with a valid 9-digit ID and{" "}
-          <code>@dau.ac.in</code> email can attempt it, even if not on the roster.
-        </div>
-      )}
+      <div className="rounded-lg bg-blue-50 border border-blue-200 dark:bg-blue-900/20 dark:border-blue-800 px-4 py-3 text-sm text-blue-700 dark:text-blue-400">
+        Students on this list are copied into every new exam's roster automatically when you create it.
+        Editing this list doesn't change exams that already exist — use{" "}
+        <span className="font-medium">Sync from course roster</span> on an individual exam's roster page for that.
+      </div>
 
       {/* Add student + CSV upload */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -106,13 +98,13 @@ export default async function RosterPage({
       <div className="rounded-xl border border-border bg-card overflow-hidden">
         <div className="px-6 py-4 border-b border-border">
           <h2 className="text-base font-semibold text-card-foreground">
-            Enrolled Students ({exam.roster.length})
+            Enrolled Students ({course.roster.length})
           </h2>
         </div>
 
-        {exam.roster.length === 0 ? (
+        {course.roster.length === 0 ? (
           <div className="px-6 py-8 text-center text-sm text-muted-foreground">
-            No students on the roster yet. Add them individually or upload a CSV.
+            No students on the course roster yet. Add them individually or upload a CSV.
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -127,7 +119,7 @@ export default async function RosterPage({
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {exam.roster.map((student) => (
+                {course.roster.map((student) => (
                   <tr key={student.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-3 font-mono text-foreground">{student.studentId}</td>
                     <td className="px-4 py-3 text-foreground">{student.name}</td>
@@ -136,7 +128,7 @@ export default async function RosterPage({
                       {formatDate(student.createdAt)}
                     </td>
                     <td className="px-4 py-3">
-                      <RemoveStudentButton examId={exam.id} studentId={student.studentId} />
+                      <RemoveCourseStudentButton courseId={course.id} studentId={student.studentId} />
                     </td>
                   </tr>
                 ))}

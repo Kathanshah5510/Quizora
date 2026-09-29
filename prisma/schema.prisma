@@ -103,9 +103,10 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  courses  Course[]
-  exams    Exam[]
-  auditLog AuditLog[]
+  courses         Course[]
+  exams           Exam[]
+  auditLog        AuditLog[]
+  teachingCourses CourseTeacher[]
 
   @@map("users")
 }
@@ -124,7 +125,9 @@ model Course {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  exams Exam[]
+  exams    Exam[]
+  teachers CourseTeacher[]
+  roster   CourseRoster[]
 
   @@map("courses")
 }
@@ -231,6 +234,40 @@ model QuestionOption {
   displayOrder Int
 
   @@map("question_options")
+}
+
+// ─── Course Teachers ──────────────────────────────────────────────────────────
+// Grants an admin (other than the course creator) management access to a
+// course — its exams, questions, roster, results, and grading. The creator
+// and any SUPER_ADMIN always have access regardless of this table.
+
+model CourseTeacher {
+  id        String   @id @default(cuid())
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([courseId, userId])
+  @@map("course_teachers")
+}
+
+// ─── Course Roster ────────────────────────────────────────────────────────────
+// The course's standing student list. Copied into an exam's own StudentRoster
+// when that exam is created; editable afterward independently of this list.
+
+model CourseRoster {
+  id        String   @id @default(cuid())
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  studentId String   // 9-digit string
+  name      String
+  email     String
+  createdAt DateTime @default(now())
+
+  @@unique([courseId, studentId])
+  @@map("course_roster")
 }
 
 // ─── Student Roster ───────────────────────────────────────────────────────────

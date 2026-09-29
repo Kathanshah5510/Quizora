@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { UpdateCourseSchema } from "@/lib/validation/course";
+import { requireCourseAccess } from "@/lib/courseAccess";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await requireAdmin();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
+  if (!(await requireCourseAccess(id))) return NextResponse.json({ error: "Course not found" }, { status: 404 });
+
   const course = await db.course.findUnique({
     where: { id },
     include: {
@@ -29,6 +32,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
+  if (!(await requireCourseAccess(id))) return NextResponse.json({ error: "Course not found" }, { status: 404 });
+
   const body = await req.json().catch(() => null);
   if (!body) return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
 
@@ -65,6 +70,8 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
+  if (!(await requireCourseAccess(id))) return NextResponse.json({ error: "Course not found" }, { status: 404 });
+
   const course = await db.course.findUnique({ where: { id } });
 
   if (!course || course.isDeleted) return NextResponse.json({ error: "Course not found" }, { status: 404 });

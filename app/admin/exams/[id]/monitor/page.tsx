@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import MonitorClient from "./MonitorClient";
+import { canAccessCourse } from "@/lib/courseAccess";
 
 export const metadata: Metadata = { title: "Live Monitor" };
 export const dynamic = "force-dynamic";
@@ -24,6 +25,7 @@ export default async function MonitorPage({ params }: Props) {
       id: true,
       title: true,
       status: true,
+      courseId: true,
       durationMinutes: true,
       availabilityStart: true,
       availabilityEnd: true,
@@ -32,6 +34,7 @@ export default async function MonitorPage({ params }: Props) {
     },
   });
   if (!exam) notFound();
+  if (!(await canAccessCourse(user, exam.courseId))) notFound();
 
   const [attempts, roster] = await Promise.all([
     db.examAttempt.findMany({

@@ -3,12 +3,15 @@ import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { UpdateExamSchema } from "@/lib/validation/exam";
 import { datetimeLocalToUtc } from "@/lib/datetime";
+import { canAccessCourse, requireExamAccess } from "@/lib/courseAccess";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await requireAdmin();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
+  if (!(await requireExamAccess(id))) return NextResponse.json({ error: "Exam not found" }, { status: 404 });
+
   const exam = await db.exam.findUnique({
     where: { id },
     include: {
@@ -22,10 +25,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const user = await requireAdmin();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   const { id } = await params;
+  const access = await requireExamAccess(id);
+  if (!access) return NextResponse.json({ error: "Exam not found" }, { status: 404 });
+  const { user } = access;
+
   const body = await req.json().catch(() => null);
   if (!body) return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
 
@@ -40,6 +44,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (parsed.data.slug && parsed.data.slug !== exam.slug) {
     const existing = await db.exam.findUnique({ where: { slug: parsed.data.slug } });
     if (existing) return NextResponse.json({ error: "Slug already in use" }, { status: 409 });
+  }
+
+  if (parsed.data.courseId && parsed.data.courseId !== exam.courseId) {
+    if (!(await canAccessCourse(user, parsed.data.courseId))) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
   }
 
   const data = parsed.data;
@@ -81,10 +91,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const user = await requireAdmin();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   const { id } = await params;
+  if (!(await requireExamAccess(id))) return NextResponse.json({ error: "Exam not found" }, { status: 404 });
+
   const exam = await db.exam.findUnique({ where: { id } });
 
   if (!exam || exam.isDeleted) return NextResponse.json({ error: "Exam not found" }, { status: 404 });

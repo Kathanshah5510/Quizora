@@ -19,7 +19,12 @@ export default async function NewExamPage({
   const { courseId } = await searchParams;
 
   const courses = await db.course.findMany({
-    where: { isActive: true },
+    where: {
+      isActive: true,
+      ...(user.role !== "SUPER_ADMIN" && {
+        OR: [{ createdById: user.id }, { teachers: { some: { userId: user.id } } }],
+      }),
+    },
     orderBy: { code: "asc" },
     select: { id: true, name: true, code: true },
   });

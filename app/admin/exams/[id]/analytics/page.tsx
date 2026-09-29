@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { canAccessCourse } from "@/lib/courseAccess";
 
 export const metadata: Metadata = { title: "Analytics" };
 
@@ -39,11 +40,13 @@ export default async function AnalyticsPage({ params }: Props) {
     select: {
       id: true,
       title: true,
+      courseId: true,
       course: { select: { code: true } },
       _count: { select: { questions: true, roster: true, attempts: true } },
     },
   });
   if (!exam) notFound();
+  if (!(await canAccessCourse(user, exam.courseId))) notFound();
 
   const questions = await db.question.findMany({
     where: { examId },

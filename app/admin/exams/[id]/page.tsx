@@ -9,6 +9,7 @@ import CopySlugButton from "./CopySlugButton";
 import DuplicateExamButton from "./DuplicateExamButton";
 import { updateExamAction, deleteExamAction } from "../actions";
 import DeleteButton from "@/components/admin/DeleteButton";
+import { canAccessCourse } from "@/lib/courseAccess";
 
 export const metadata: Metadata = { title: "Exam Settings" };
 
@@ -37,9 +38,16 @@ export default async function ExamDetailPage({
   });
 
   if (!exam) notFound();
+  if (!(await canAccessCourse(user, exam.courseId))) notFound();
 
   const courses = await db.course.findMany({
-    where: { isActive: true, isDeleted: false },
+    where: {
+      isActive: true,
+      isDeleted: false,
+      ...(user.role !== "SUPER_ADMIN" && {
+        OR: [{ createdById: user.id }, { teachers: { some: { userId: user.id } } }],
+      }),
+    },
     orderBy: { code: "asc" },
     select: { id: true, name: true, code: true },
   });

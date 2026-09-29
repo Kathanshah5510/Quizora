@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import PdfImportClient from "./PdfImportClient";
+import { canAccessCourse } from "@/lib/courseAccess";
 
 export const metadata: Metadata = { title: "Import Questions from PDF" };
 
@@ -18,9 +19,10 @@ export default async function ImportPdfPage({ params }: Props) {
   const { id: examId } = await params;
   const exam = await db.exam.findUnique({
     where: { id: examId },
-    select: { id: true, title: true, status: true, course: { select: { code: true } } },
+    select: { id: true, title: true, status: true, courseId: true, course: { select: { code: true } } },
   });
   if (!exam) notFound();
+  if (!(await canAccessCourse(user, exam.courseId))) notFound();
 
   return (
     <div className="max-w-2xl space-y-6">

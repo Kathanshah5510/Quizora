@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { UpdateQuestionSchema } from "@/lib/validation/question";
+import { requireExamAccess } from "@/lib/courseAccess";
 
 type Params = { params: Promise<{ id: string; questionId: string }> };
 
 export async function GET(_req: NextRequest, { params }: Params) {
-  const user = await requireAdmin();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   const { id: examId, questionId } = await params;
+  if (!(await requireExamAccess(examId))) return NextResponse.json({ error: "Exam not found" }, { status: 404 });
+
   const question = await db.question.findFirst({
     where: { id: questionId, examId },
     include: {
@@ -24,10 +24,8 @@ export async function GET(_req: NextRequest, { params }: Params) {
 }
 
 export async function PATCH(req: NextRequest, { params }: Params) {
-  const user = await requireAdmin();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   const { id: examId, questionId } = await params;
+  if (!(await requireExamAccess(examId))) return NextResponse.json({ error: "Exam not found" }, { status: 404 });
 
   const existing = await db.question.findFirst({
     where: { id: questionId, examId },
@@ -90,10 +88,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(_req: NextRequest, { params }: Params) {
-  const user = await requireAdmin();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   const { id: examId, questionId } = await params;
+  if (!(await requireExamAccess(examId))) return NextResponse.json({ error: "Exam not found" }, { status: 404 });
+
   const question = await db.question.findFirst({
     where: { id: questionId, examId },
     include: { _count: { select: { responses: true } } },

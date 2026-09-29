@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { requireExamAccess } from "@/lib/courseAccess";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string; attemptId: string }> }
 ) {
-  const user = await requireAdmin();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   const { id: examId, attemptId } = await params;
+  if (!(await requireExamAccess(examId))) return NextResponse.json({ error: "Exam not found" }, { status: 404 });
 
   const body = await req.json().catch(() => ({}));
   const minutes = Number(body.minutes);

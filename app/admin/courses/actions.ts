@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { CreateCourseSchema, UpdateCourseSchema } from "@/lib/validation/course";
+import { requireCourseAccess, canManageCourseTeachers } from "@/lib/courseAccess";
+import { getSessionUser } from "@/lib/auth";
 
 export type CourseActionState = { error: string; success: boolean };
 
@@ -49,8 +51,7 @@ export async function updateCourseAction(
   _prev: CourseActionState,
   formData: FormData
 ): Promise<CourseActionState> {
-  const user = await requireAdmin();
-  if (!user) return { error: "Unauthorized", success: false };
+  if (!(await requireCourseAccess(courseId))) return { error: "Unauthorized", success: false };
 
   const raw = {
     name: formData.get("name") as string,
@@ -88,8 +89,7 @@ export async function updateCourseAction(
 }
 
 export async function deleteCourseAction(courseId: string): Promise<{ error?: string; success?: boolean }> {
-  const user = await requireAdmin();
-  if (!user) return { error: "Unauthorized" };
+  if (!(await requireCourseAccess(courseId))) return { error: "Unauthorized" };
 
   const course = await db.course.findUnique({ where: { id: courseId } });
   if (!course || course.isDeleted) return { error: "Course not found" };
@@ -100,8 +100,7 @@ export async function deleteCourseAction(courseId: string): Promise<{ error?: st
 }
 
 export async function toggleCourseActiveAction(courseId: string, isActive: boolean) {
-  const user = await requireAdmin();
-  if (!user) return { error: "Unauthorized" };
+  if (!(await requireCourseAccess(courseId))) return { error: "Unauthorized" };
 
   const course = await db.course.findUnique({ where: { id: courseId } });
   if (!course) return { error: "Course not found" };
@@ -109,5 +108,62 @@ export async function toggleCourseActiveAction(courseId: string, isActive: boole
   await db.course.update({ where: { id: courseId }, data: { isActive } });
   revalidatePath(`/admin/courses/${courseId}`);
   revalidatePath("/admin/courses");
+  return { success: true };
+}
+
+// ── Course teachers ───────────────────────────────────────────────────────────
+// Only the course creator or a SUPER_ADMIN may change this list — see
+// canManageCourseTeachers in lib/courseAccess.ts for why it's stricter than
+// the general "can this admin manage the course" check.
+
+export type AddTeacherState = { error: string; success: boolean };
+
+export async function addCourseTeacherAction(
+  courseId: string,
+  _prev: AddTeacherState,
+  formData: FormData
+): Promise<AddTeacherState> {
+  const user = await getSessionUser();
+  if (!user) return { error: "Unauthorized", success: false };
+  if (!(await canManageCourseTeachers(user, courseId))) {
+    return { error: "Only the course creator can manage teachers", success: false };
+  }
+
+  const email = (formData.get("email") as string)?.trim().toLowerCase();
+  if (!email) return { error: "Email is required", success: false };
+
+  const target = await db.user.findUnique({ where: { email } });
+  if (!target || !target.isActive) {
+    return { error: "No active admin account with that email", success: false };
+  }
+
+  const course = await db.course.findUnique({ where: { id: courseId }, select: { createdById: true } });
+  if (!course) return { error: "Course not found", success: false };
+  if (target.id === course.createdById) {
+    return { error: `${target.name} already owns this course`, success: false };
+  }
+
+  const existing = await db.courseTeacher.findUnique({
+    where: { courseId_userId: { courseId, userId: target.id } },
+  });
+  if (existing) return { error: `${target.name} is already a teacher on this course`, success: false };
+
+  await db.courseTeacher.create({ data: { courseId, userId: target.id } });
+  revalidatePath(`/admin/courses/${courseId}`);
+  return { error: "", success: true };
+}
+
+export async function removeCourseTeacherAction(
+  courseId: string,
+  teacherId: string
+): Promise<{ error?: string; success?: boolean }> {
+  const user = await getSessionUser();
+  if (!user) return { error: "Unauthorized" };
+  if (!(await canManageCourseTeachers(user, courseId))) {
+    return { error: "Only the course creator can manage teachers" };
+  }
+
+  await db.courseTeacher.deleteMany({ where: { id: teacherId, courseId } });
+  revalidatePath(`/admin/courses/${courseId}`);
   return { success: true };
 }

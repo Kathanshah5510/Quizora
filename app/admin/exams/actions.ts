@@ -7,6 +7,7 @@ import { requireAdmin } from "@/lib/auth";
 import { CreateExamSchema, UpdateExamSchema, parseExamFormData } from "@/lib/validation/exam";
 import { generateExamSlug } from "@/lib/utils";
 import { datetimeLocalToUtc } from "@/lib/datetime";
+import { canAccessCourse, requireExamAccess } from "@/lib/courseAccess";
 
 export type ExamActionState = { error: string; success: boolean };
 
@@ -23,8 +24,12 @@ export async function createExamAction(
     return { error: parsed.error.errors[0].message, success: false };
   }
 
-  const course = await db.course.findUnique({ where: { id: parsed.data.courseId } });
+  const course = await db.course.findUnique({
+    where: { id: parsed.data.courseId },
+    select: { id: true, roster: { select: { studentId: true, name: true, email: true } } },
+  });
   if (!course) return { error: "Course not found", success: false };
+  if (!(await canAccessCourse(user, course.id))) return { error: "Unauthorized", success: false };
 
   const slug = generateExamSlug(parsed.data.title);
 
@@ -60,6 +65,18 @@ export async function createExamAction(
     },
   });
 
+  // Seed the exam's roster from the course's standing roster, if any.
+  if (course.roster.length > 0) {
+    await db.studentRoster.createMany({
+      data: course.roster.map((s) => ({
+        examId: exam.id,
+        studentId: s.studentId,
+        name: s.name,
+        email: s.email,
+      })),
+    });
+  }
+
   revalidatePath("/admin/exams");
   redirect(`/admin/exams/${exam.id}`);
 }
@@ -69,8 +86,7 @@ export async function createExamAction(
 type LifecycleResult = { error?: string; success?: boolean };
 
 export async function deleteExamAction(examId: string): Promise<LifecycleResult> {
-  const user = await requireAdmin();
-  if (!user) return { error: "Unauthorized" };
+  if (!(await requireExamAccess(examId))) return { error: "Unauthorized" };
 
   const exam = await db.exam.findUnique({ where: { id: examId } });
   if (!exam || exam.isDeleted) return { error: "Exam not found" };
@@ -81,8 +97,7 @@ export async function deleteExamAction(examId: string): Promise<LifecycleResult>
 }
 
 export async function publishExamAction(examId: string): Promise<LifecycleResult> {
-  const user = await requireAdmin();
-  if (!user) return { error: "Unauthorized" };
+  if (!(await requireExamAccess(examId))) return { error: "Unauthorized" };
 
   const exam = await db.exam.findUnique({ where: { id: examId } });
   if (!exam) return { error: "Exam not found" };
@@ -98,8 +113,7 @@ export async function publishExamAction(examId: string): Promise<LifecycleResult
 }
 
 export async function unpublishExamAction(examId: string): Promise<LifecycleResult> {
-  const user = await requireAdmin();
-  if (!user) return { error: "Unauthorized" };
+  if (!(await requireExamAccess(examId))) return { error: "Unauthorized" };
 
   const exam = await db.exam.findUnique({
     where: { id: examId },
@@ -118,8 +132,7 @@ export async function unpublishExamAction(examId: string): Promise<LifecycleResu
 }
 
 export async function closeExamAction(examId: string): Promise<LifecycleResult> {
-  const user = await requireAdmin();
-  if (!user) return { error: "Unauthorized" };
+  if (!(await requireExamAccess(examId))) return { error: "Unauthorized" };
 
   const exam = await db.exam.findUnique({ where: { id: examId } });
   if (!exam) return { error: "Exam not found" };
@@ -135,8 +148,7 @@ export async function closeExamAction(examId: string): Promise<LifecycleResult> 
 }
 
 export async function reopenExamAction(examId: string): Promise<LifecycleResult> {
-  const user = await requireAdmin();
-  if (!user) return { error: "Unauthorized" };
+  if (!(await requireExamAccess(examId))) return { error: "Unauthorized" };
 
   const exam = await db.exam.findUnique({ where: { id: examId } });
   if (!exam) return { error: "Exam not found" };
@@ -152,8 +164,9 @@ export async function reopenExamAction(examId: string): Promise<LifecycleResult>
 }
 
 export async function duplicateExamAction(examId: string): Promise<LifecycleResult & { newId?: string }> {
-  const user = await requireAdmin();
-  if (!user) return { error: "Unauthorized" };
+  const access = await requireExamAccess(examId);
+  if (!access) return { error: "Unauthorized" };
+  const { user } = access;
 
   const source = await db.exam.findUnique({
     where: { id: examId },
@@ -252,8 +265,9 @@ export async function updateExamAction(
   _prev: ExamActionState,
   formData: FormData
 ): Promise<ExamActionState> {
-  const user = await requireAdmin();
-  if (!user) return { error: "Unauthorized", success: false };
+  const access = await requireExamAccess(examId);
+  if (!access) return { error: "Unauthorized", success: false };
+  const { user } = access;
 
   const rawForm = parseExamFormData(formData);
   const slug = (formData.get("slug") as string)?.trim();
@@ -274,6 +288,14 @@ export async function updateExamAction(
   if (parsed.data.slug && parsed.data.slug !== exam.slug) {
     const existing = await db.exam.findUnique({ where: { slug: parsed.data.slug } });
     if (existing) return { error: "That URL slug is already taken", success: false };
+  }
+
+  // Moving an exam into a different course requires access to that course too —
+  // otherwise a teacher could relocate an exam into a course they don't own.
+  if (parsed.data.courseId && parsed.data.courseId !== exam.courseId) {
+    if (!(await canAccessCourse(user, parsed.data.courseId))) {
+      return { error: "Unauthorized", success: false };
+    }
   }
 
   const data = parsed.data;

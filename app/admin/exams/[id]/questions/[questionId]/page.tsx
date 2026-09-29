@@ -12,6 +12,7 @@ const QuestionForm = dynamic(() => import("@/components/admin/QuestionForm"), {
 import QuestionDeleteButton from "./QuestionDeleteButton";
 import { updateQuestionAction, deleteQuestionAction } from "../actions";
 import RichText from "@/components/RichText";
+import { canAccessCourse } from "@/lib/courseAccess";
 
 export const metadata: Metadata = { title: "Edit Question" };
 
@@ -37,7 +38,7 @@ export default async function EditQuestionPage({
   const [exam, question] = await Promise.all([
     db.exam.findUnique({
       where: { id: examId },
-      select: { id: true, title: true, status: true },
+      select: { id: true, title: true, status: true, courseId: true },
     }),
     db.question.findFirst({
       where: { id: questionId, examId, isDeleted: false },
@@ -50,6 +51,7 @@ export default async function EditQuestionPage({
   ]);
 
   if (!exam) redirect("/admin/exams");
+  if (!(await canAccessCourse(user, exam.courseId))) redirect("/admin/exams");
   if (!question) notFound();
 
   const hasResponses = question._count.responses > 0;

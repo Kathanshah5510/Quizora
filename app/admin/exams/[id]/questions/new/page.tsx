@@ -9,6 +9,7 @@ const QuestionForm = dynamic(() => import("@/components/admin/QuestionForm"), {
   loading: () => <PageSpinner label="Loading form…" />,
 });
 import { createQuestionAction } from "../actions";
+import { canAccessCourse } from "@/lib/courseAccess";
 
 export const metadata: Metadata = { title: "New Question" };
 
@@ -23,9 +24,10 @@ export default async function NewQuestionPage({
   const { id: examId } = await params;
   const exam = await db.exam.findUnique({
     where: { id: examId },
-    select: { id: true, title: true, status: true, defaultMarks: true, defaultNegativeMarks: true },
+    select: { id: true, title: true, status: true, courseId: true, defaultMarks: true, defaultNegativeMarks: true },
   });
   if (!exam) redirect("/admin/exams");
+  if (!(await canAccessCourse(user, exam.courseId))) redirect("/admin/exams");
 
   if (exam.status === "CLOSED") redirect(`/admin/exams/${examId}/questions`);
 

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { requireAdmin } from "@/lib/auth";
+import { requireExamAccess } from "@/lib/courseAccess";
 import {
   CreateQuestionSchema,
   UpdateQuestionSchema,
@@ -20,8 +20,7 @@ export async function createQuestionAction(
   examId: string,
   data: unknown
 ): Promise<QuestionActionResult> {
-  const user = await requireAdmin();
-  if (!user) return { error: "Unauthorized", success: false };
+  if (!(await requireExamAccess(examId))) return { error: "Unauthorized", success: false };
 
   const exam = await getExamOrFail(examId);
   if (!exam) return { error: "Exam not found", success: false };
@@ -71,8 +70,7 @@ export async function updateQuestionAction(
   questionId: string,
   data: unknown
 ): Promise<QuestionActionResult> {
-  const user = await requireAdmin();
-  if (!user) return { error: "Unauthorized", success: false };
+  if (!(await requireExamAccess(examId))) return { error: "Unauthorized", success: false };
 
   const existing = await db.question.findFirst({
     where: { id: questionId, examId, isDeleted: false },
@@ -128,8 +126,7 @@ export async function deleteQuestionAction(
   examId: string,
   questionId: string
 ): Promise<QuestionActionResult> {
-  const user = await requireAdmin();
-  if (!user) return { error: "Unauthorized", success: false };
+  if (!(await requireExamAccess(examId))) return { error: "Unauthorized", success: false };
 
   const question = await db.question.findFirst({
     where: { id: questionId, examId, isDeleted: false },
@@ -149,8 +146,7 @@ export async function duplicateQuestionAction(
   examId: string,
   questionId: string
 ): Promise<QuestionActionResult> {
-  const user = await requireAdmin();
-  if (!user) return { error: "Unauthorized", success: false };
+  if (!(await requireExamAccess(examId))) return { error: "Unauthorized", success: false };
 
   const source = await db.question.findFirst({
     where: { id: questionId, examId },
@@ -195,8 +191,7 @@ export async function reorderQuestionsAction(
   examId: string,
   data: unknown
 ): Promise<QuestionActionResult> {
-  const user = await requireAdmin();
-  if (!user) return { error: "Unauthorized", success: false };
+  if (!(await requireExamAccess(examId))) return { error: "Unauthorized", success: false };
 
   const parsed = ReorderQuestionsSchema.safeParse(data);
   if (!parsed.success) return { error: parsed.error.errors[0].message, success: false };

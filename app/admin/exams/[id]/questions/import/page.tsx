@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import QuestionImport from "@/components/admin/QuestionImport";
+import { canAccessCourse } from "@/lib/courseAccess";
 
 export const metadata: Metadata = { title: "Import Questions" };
 
@@ -18,9 +19,10 @@ export default async function ImportQuestionsPage({
   const { id: examId } = await params;
   const exam = await db.exam.findUnique({
     where: { id: examId },
-    select: { id: true, title: true, status: true },
+    select: { id: true, title: true, status: true, courseId: true },
   });
   if (!exam) redirect("/admin/exams");
+  if (!(await canAccessCourse(user, exam.courseId))) redirect("/admin/exams");
   if (exam.status === "CLOSED") redirect(`/admin/exams/${examId}/questions`);
 
   return (
